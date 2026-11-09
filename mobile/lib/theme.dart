@@ -17,6 +17,17 @@ class Tokens {
   static const gradient = LinearGradient(colors: [Color(0xFF6A5CFF), Color(0xFF9B5CFF), Color(0xFFFF5CA8)]);
 }
 
+/// Poppins has tall line metrics; a fixed, tighter line height removes the loose gaps.
+TextTheme _tight(TextTheme t) {
+  TextStyle? h(TextStyle? s) => s?.copyWith(height: 1.3);
+  return t.copyWith(
+    headlineLarge: h(t.headlineLarge), headlineMedium: h(t.headlineMedium), headlineSmall: h(t.headlineSmall),
+    titleLarge: h(t.titleLarge), titleMedium: h(t.titleMedium), titleSmall: h(t.titleSmall),
+    bodyLarge: h(t.bodyLarge), bodyMedium: h(t.bodyMedium), bodySmall: h(t.bodySmall),
+    labelLarge: h(t.labelLarge), labelMedium: h(t.labelMedium), labelSmall: h(t.labelSmall),
+  );
+}
+
 ThemeData buildTheme() {
   final base = ThemeData.dark(useMaterial3: true);
   return base.copyWith(
@@ -27,7 +38,7 @@ ThemeData buildTheme() {
       surface: Tokens.surface,
       error: Tokens.danger,
     ),
-    textTheme: GoogleFonts.poppinsTextTheme(base.textTheme).apply(bodyColor: Tokens.text, displayColor: Tokens.text, heightFactor: .88),
+    textTheme: _tight(GoogleFonts.poppinsTextTheme(base.textTheme).apply(bodyColor: Tokens.text, displayColor: Tokens.text)),
     listTileTheme: const ListTileThemeData(dense: true, contentPadding: EdgeInsets.symmetric(horizontal: 12), minVerticalPadding: 4, horizontalTitleGap: 12),
     dividerTheme: const DividerThemeData(color: Tokens.border, space: 1, thickness: 1),
     snackBarTheme: const SnackBarThemeData(behavior: SnackBarBehavior.floating),
