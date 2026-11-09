@@ -50,17 +50,11 @@ class MainActivity : FlutterActivity() {
         if (code != requestCode) return
         val r = pending ?: return
         pending = null
-        if (resultCode != Activity.RESULT_OK && data == null) {
-            r.success("NO_RESPONSE")
-            return
+        val extras = try {
+            data?.extras?.let { b -> b.keySet().associateWith { k -> b.get(k) } }
+        } catch (t: Throwable) {
+            null
         }
-        val response = data?.getStringExtra("response")
-            ?: data?.extras?.let { b ->
-                // Some apps return fields separately.
-                listOf("Status", "txnId", "txnRef", "responseCode")
-                    .filter { b.containsKey(it) }
-                    .joinToString("&") { "$it=${b.get(it)}" }
-            }
-        r.success(if (response.isNullOrBlank()) "NO_RESPONSE" else response)
+        r.success(UpiResult.toRaw(extras, hasData = data != null, canceled = resultCode == Activity.RESULT_CANCELED))
     }
 }

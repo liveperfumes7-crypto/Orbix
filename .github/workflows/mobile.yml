@@ -39,6 +39,8 @@ jobs:
         with: { distribution: temurin, java-version: 17 }
       - run: flutter create --platforms=android --org com.orbix --project-name orbix . && rm -f android/app/build.gradle && sed -i "s/com.android.application\" version \"[0-9.]*\"/com.android.application\" version \"8.1.4\"/" android/settings.gradle
       - run: flutter pub get
+      - name: Kotlin unit tests (UPI result conversion)
+        run: cd android && ./gradlew :app:testDirectDebugUnitTest
       - name: Write signing config from secrets (never committed)
         if: env.KEYSTORE_B64 != ''
         run: |
