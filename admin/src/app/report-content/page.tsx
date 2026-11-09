@@ -1,16 +1,19 @@
 import SiteShell from "@/components/SiteShell";
 
-export const metadata = { title: "Report content" };
-const email = process.env.NEXT_PUBLIC_SUPPORT_EMAIL;
+export const metadata = { title: "Report Content" };
+const email = process.env.NEXT_PUBLIC_SUPPORT_EMAIL || "help.orbix@gmail.com";
 
 export default function Report() {
   return (
     <SiteShell>
-      <main className="mx-auto max-w-xl px-4 py-10 space-y-4 text-sm leading-relaxed">
-        <h1 className="text-2xl font-bold">Report content</h1>
-        <p>The fastest way: open the post in Orbix, tap <b>⋮ → Report</b> and choose a reason (Sexual/nude, Violence, Hate/harassment, Copyright, Spam/scam, Other). You can also block a channel from the same menu.</p>
-        <p>Reports are reviewed by our team; content that breaks the rules is hidden.</p>
-        <p>Cannot use the app? Email us the post link (orbix.vercel.app/p/…) and the reason{email ? <>: <a className="underline" href={`mailto:${email}`}>{email}</a></> : "."}</p>
+      <main className="prose-doc mx-auto max-w-3xl px-4 py-12 text-sm">
+        <h1>Report Content</h1>
+        <p>The fastest way: open the post in Orbix, tap <b>⋮ → Report</b> and choose a reason (sexual or nude, violence, hate or harassment, copyright, spam or scam, other). You can also block a channel from the same menu.</p>
+        <p>Reports are reviewed by our team, and content that breaks our <a href="/community-guidelines">Community Guidelines</a> is hidden.</p>
+        <h2>Cannot use the app?</h2>
+        <p>Email <a href={`mailto:${email}`}>{email}</a> with the link to the post or channel, the reason, and (for copyright) your name and proof that you own the work.</p>
+        <h2>Need help with something else?</h2>
+        <p>Write to the same address with your account email and, for payments, your order reference (it starts with OB).</p>
       </main>
     </SiteShell>
   );

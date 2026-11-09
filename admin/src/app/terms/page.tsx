@@ -1,21 +1,84 @@
 import SiteShell from "@/components/SiteShell";
 
-export const metadata = { title: "Terms of Service" };
+export const metadata = { title: "Terms and Conditions" };
+const email = process.env.NEXT_PUBLIC_SUPPORT_EMAIL || "help.orbix@gmail.com";
 
 export default function Terms() {
   return (
     <SiteShell>
-      <article className="mx-auto max-w-2xl px-4 py-10 space-y-4 text-sm leading-relaxed">
-        <h1 className="text-2xl font-bold">Terms of Service</h1>
-        <p className="text-muted">Last updated: November 2026</p>
-        <h2 className="font-semibold text-base">Your content</h2>
-        <p>You own what you upload. You confirm you have the right to share it and that it follows our community rules: no sexual content involving minors, no non-consensual or explicit sexual content, no violence or hate, no copyright infringement, no spam or scams. We may hide or remove content and suspend accounts that break these rules.</p>
-        <h2 className="font-semibold text-base">Premium plans</h2>
-        <p>Plans are time-limited, priced in Indian Rupees and activate after payment is confirmed. Prices shown at purchase are final for that order. Plans do not auto-renew. Refunds are handled case by case; contact support with your payment reference.</p>
-        <h2 className="font-semibold text-base">Storage</h2>
-        <p>Free accounts get limited storage; guests get none. If a plan ends, existing files stay but new uploads may be blocked above the free quota.</p>
-        <h2 className="font-semibold text-base">Changes</h2>
-        <p>We may update these terms; continued use means you accept them.</p>
+      <article className="prose-doc mx-auto max-w-3xl px-4 py-12 text-sm">
+        <h1>Terms and Conditions</h1>
+        <p className="text-slate-500">Last updated: November 2026</p>
+
+        <h2>1. Introduction</h2>
+        <p>Welcome to Orbix. These terms are an agreement between you and Orbix (“we”, “us”). By installing or using the app or this website you agree to these terms, our <a href="/privacy">Privacy Policy</a>, <a href="/refund">Refund Policy</a> and <a href="/community-guidelines">Community Guidelines</a>.</p>
+
+        <h2>2. Who can use Orbix</h2>
+        <ul>
+          <li>You must be at least 18 years old.</li>
+          <li>You must follow all applicable local and national laws.</li>
+          <li>You must not be barred from using online services under applicable law.</li>
+          <li>We may suspend or end accounts that break these terms.</li>
+        </ul>
+
+        <h2>3. Your account</h2>
+        <ul>
+          <li>You can browse as a guest. An account is needed to join channels, upload, use cloud storage or buy a plan.</li>
+          <li>You are responsible for your password and for activity on your account. Do not share your login.</li>
+          <li>Give us accurate information and tell us if you think someone else is using your account.</li>
+        </ul>
+
+        <h2>4. Your content</h2>
+        <h3>4.1 Ownership</h3>
+        <p>You keep ownership of what you upload. You give us a limited, non-exclusive licence to store, process and display it as needed to run Orbix (for example to show your channel to other users).</p>
+        <h3>4.2 Your responsibility</h3>
+        <p>You are responsible for everything you upload, post or share. You confirm that you have the right to share it and that it follows our <a href="/community-guidelines">Community Guidelines</a>. We do not review everything users upload and do not take responsibility for user content, but we act on reports.</p>
+        <h3>4.3 Prohibited content</h3>
+        <p>Do not upload or share illegal content, sexual content involving minors, non-consensual or explicit sexual content, content that promotes violence or hatred, malware, scams, or material you do not have the right to share.</p>
+
+        <h2>5. Channels</h2>
+        <ul>
+          <li>New channels are reviewed by us before they appear to others.</li>
+          <li>Channel owners are responsible for their channels and their content.</li>
+          <li>We may hide, restrict or remove a channel, or suspend its owner, if the rules are broken.</li>
+        </ul>
+
+        <h2>6. Copyright</h2>
+        <p>Only upload content you own or have permission to use. If you believe content infringes your rights, tell us on the <a href="/report-content">Report Content</a> page with a link and details. We may remove content and suspend repeat infringers. Downloading content does not give you ownership of it.</p>
+
+        <h2>7. Cloud storage</h2>
+        <p>Guests have no cloud storage. Free accounts receive a limited quota, and Premium plans increase it. If a plan ends, your existing files stay but you may not be able to add more files above the free quota. Keep your own backup of important files.</p>
+
+        <h2>8. Premium plans and payments</h2>
+        <ul>
+          <li>Plans are for a fixed period, priced in Indian Rupees, and start after payment is confirmed. Plans do not renew automatically.</li>
+          <li>The price and duration shown at the time of purchase apply to that order.</li>
+          <li>On the website and direct-download versions, payment is made with UPI to our UPI ID. If you install from Google Play, purchases follow Google Play’s rules where available.</li>
+          <li>Refunds are described in our <a href="/refund">Refund Policy</a>.</li>
+          <li>We may end a plan if the account breaks these terms.</li>
+        </ul>
+
+        <h2>9. Acceptable use</h2>
+        <ul>
+          <li>Do not break the law, hack, disrupt or overload the service, or try to get around its limits.</li>
+          <li>Do not misuse other people’s information or send spam.</li>
+          <li>Do not fake payments, tamper with the app, or use it to commit fraud.</li>
+        </ul>
+
+        <h2>10. Third-party services and links</h2>
+        <p>Orbix relies on third-party services (see the Privacy Policy) and may contain links to other websites. We do not control them and are not responsible for their content or policies.</p>
+
+        <h2>11. Ending your use</h2>
+        <p>You can delete your account at any time (see <a href="/delete-account">Delete Account</a>). We may remove content or suspend accounts that break these terms. Some records are kept as explained in the Privacy Policy.</p>
+
+        <h2>12. Disclaimer and limit of liability</h2>
+        <p>Orbix is provided “as is” and “as available”. We work to keep it running, but we do not promise it will be uninterrupted or error-free. To the extent the law allows, we are not liable for loss or damage from your use of the service, from user content, or from interruptions or loss of data.</p>
+
+        <h2>13. Changes</h2>
+        <p>We may update these terms. The date above shows the latest version. Continued use of Orbix after a change means you accept it.</p>
+
+        <h2>14. Contact</h2>
+        <p>Questions about these terms: <a href={`mailto:${email}`}>{email}</a>.</p>
       </article>
     </SiteShell>
   );

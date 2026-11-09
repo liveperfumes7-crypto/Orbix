@@ -11,5 +11,8 @@ export async function loadPlans(): Promise<Plan[]> {
   return (data as Plan[]) ?? [];
 }
 
-export const durationLabel = (d: number) =>
-  d >= 365 ? "1 year" : d >= 180 ? "6 months" : d >= 30 ? `${Math.round(d / 30)} month` : `${d} days`;
+export const durationLabel = (d: number) => {
+  if (d >= 365 && d % 365 === 0) return d === 365 ? "1 Year" : `${d / 365} Years`;
+  if (d >= 30 && d % 30 === 0) return d === 30 ? "1 Month" : `${d / 30} Months`;
+  return d === 1 ? "1 Day" : `${d} Days`;
+};
