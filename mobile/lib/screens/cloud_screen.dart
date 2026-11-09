@@ -32,7 +32,8 @@ class _CloudScreenState extends State<CloudScreen> {
   @override
   void initState() {
     super.initState();
-    _load();
+    // AppScope can't be read in initState; wait for the first frame.
+    WidgetsBinding.instance.addPostFrameCallback((_) { if (mounted) _load(); });
   }
 
   Future<void> _load() async {

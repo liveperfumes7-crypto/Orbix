@@ -62,8 +62,8 @@ void main() {
           expect(find.byKey(const Key('account_button')), findsOneWidget);
           expect(find.byKey(const Key('login_link')), t['guest']! ? findsOneWidget : findsNothing);
         }
-        // Payment history is hidden for guests only.
-        if (t['plan']! || !t['guest']!) {
+        // Payment history lives in the account card (plan holders land there directly).
+        if (t['plan']!) {
           expect(find.text('Payment history'), findsOneWidget);
         }
       });
