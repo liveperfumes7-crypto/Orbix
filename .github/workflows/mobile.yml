@@ -69,6 +69,19 @@ jobs:
           echo "manifest: $M"; test -n "$M" || (echo 'merged manifest not found'; exit 1)
           grep -q 'com.orbix.app' "$M" || (echo 'direct package missing'; exit 1)
           ! grep -q 'permission.AD_ID' "$M" || (echo 'AD_ID present'; exit 1)
+      - name: Verify release signature
+        if: env.KEYSTORE_B64 != ''
+        working-directory: .
+        env:
+          EXPECTED: "B7:0A:41:56:E6:23:81:D3:3E:43:0D:AB:ED:74:62:52:3D:D6:06:7F:F7:76:B6:7A:55:E8:E0:26:C7:01:81:0C"
+        run: |
+          AS=$(ls $ANDROID_HOME/build-tools/*/apksigner | sort -V | tail -1)
+          for f in Orbix.apk Orbix-ads.apk; do
+            got=$($AS verify --print-certs $f | grep "SHA-256 digest" | head -1 | sed 's/.*: //' | tr a-f A-F | sed 's/../&:/g; s/:$//')
+            echo "$f -> $got"
+            [ "$got" = "$EXPECTED" ] || { echo "Signature mismatch for $f"; exit 1; }
+          done
+          jarsigner -verify Orbix-play.aab | tail -1
       - uses: actions/upload-artifact@v4
         with:
           name: Orbix-apks
