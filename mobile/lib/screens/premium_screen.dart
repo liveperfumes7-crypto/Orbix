@@ -13,7 +13,10 @@ import 'payment_status_screen.dart';
 
 /// Premium entry. Which of the four states shows is decided by the SERVER values in my_status.
 class PremiumScreen extends StatelessWidget {
-  const PremiumScreen({super.key, this.webViewBuilder});
+  const PremiumScreen({super.key, this.webViewBuilder, this.actions = const []});
+
+  /// Extra app-bar buttons (Profile uses this for the Account button).
+  final List<Widget> actions;
 
   /// Lets tests replace the real WebView.
   final Widget Function(BuildContext, Uri)? webViewBuilder;
@@ -22,7 +25,7 @@ class PremiumScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final app = AppScope.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Premium')),
+      appBar: AppBar(title: const Text('Premium'), actions: actions),
       body: ListenableBuilder(
         listenable: app,
         builder: (context, _) {

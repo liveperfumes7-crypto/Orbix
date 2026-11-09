@@ -9,8 +9,39 @@ import 'login_sheet.dart';
 import 'payment_status_screen.dart';
 import 'premium_screen.dart';
 
+/// Profile tab: users without an active plan (when plans are visible to them) land on the
+/// plans page directly; everyone else gets the account view. Reacts live to status changes.
 class ProfileScreen extends StatelessWidget {
-  const ProfileScreen({super.key});
+  const ProfileScreen({super.key, this.webViewBuilder});
+  final Widget Function(BuildContext, Uri)? webViewBuilder;
+
+  @override
+  Widget build(BuildContext context) {
+    final app = AppScope.of(context);
+    return ListenableBuilder(
+      listenable: app,
+      builder: (context, _) {
+        if (app.showPremiumEntry && !app.status.isPremium) {
+          return PremiumScreen(
+            webViewBuilder: webViewBuilder,
+            actions: [
+              IconButton(
+                key: const Key('account_button'),
+                tooltip: 'Account',
+                icon: const Icon(Icons.account_circle_outlined),
+                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => Scaffold(appBar: AppBar(title: const Text('Account')), body: AccountView(key: Key('account_view'))))),
+              ),
+            ],
+          );
+        }
+        return const AccountView(key: Key('account_view'));
+      },
+    );
+  }
+}
+
+class AccountView extends StatelessWidget {
+  const AccountView({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -21,12 +52,11 @@ class ProfileScreen extends StatelessWidget {
         final s = app.status;
         final d = s.planEndsAt;
         return ListView(padding: const EdgeInsets.all(16), children: [
-          // Plans visible and no plan -> Premium first.
-          if (app.showPremiumEntry && !s.isPremium)
+          if (app.showPremiumEntry && s.isPremium)
             Card(child: ListTile(
               leading: const Icon(Icons.workspace_premium, color: Tokens.gold),
-              title: const Text('Go Premium'),
-              subtitle: const Text('2 TB cloud, full videos, downloads'),
+              title: const Text('Upgrade / Renew'),
+              subtitle: const Text('Renewing extends your end date'),
               onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PremiumScreen())),
             )),
           Card(child: ListTile(
