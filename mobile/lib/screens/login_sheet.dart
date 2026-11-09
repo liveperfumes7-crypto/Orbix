@@ -80,6 +80,13 @@ class _LoginSheetState extends State<LoginSheet> {
             GradientButton(label: _busy ? 'Please wait…' : (_signup ? 'Sign up' : 'Log in'), onPressed: _busy ? null : _submit),
             TextButton(onPressed: () => setState(() => _signup = !_signup), child: Text(_signup ? 'I already have an account' : 'New here? Sign up')),
             if (!_signup) TextButton(onPressed: _forgot, child: const Text('Forgot password?')),
+            const SizedBox(height: 4),
+            OutlinedButton.icon(
+              key: const Key('google_login'),
+              onPressed: () => setState(() => _info = 'Google sign-in is coming soon. Please use email for now.'),
+              icon: const Icon(Icons.g_mobiledata, size: 28),
+              label: const Text('Continue with Google (coming soon)'),
+            ),
             TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Continue as Guest')),
           ]),
         ),

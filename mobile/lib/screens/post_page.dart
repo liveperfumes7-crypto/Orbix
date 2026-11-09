@@ -57,6 +57,10 @@ class _PostPageState extends State<PostPage> {
 
   Future<void> _play(Map<String, dynamic> it) async {
     final app = AppScope.of(context);
+    // Organic visitors must log in before playing anything; ads visitors can watch free content and trailers as guests.
+    if (app.status.isGuest && app.status.source == 'organic') {
+      if (!await requireAccount(context) || !mounted) return;
+    }
     final premium = it['is_premium'] == true;
     final allowed = !premium || app.status.canPlayPremium;
     // Ads users who are not premium get the trailer; everyone else without access sees the lock.
