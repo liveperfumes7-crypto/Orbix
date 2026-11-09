@@ -25,6 +25,8 @@ class ProfileScreen extends StatelessWidget {
           return PremiumScreen(
             webViewBuilder: webViewBuilder,
             actions: [
+              if (app.status.isGuest)
+                TextButton(key: const Key('login_link'), onPressed: () => requireAccount(context), child: const Text('Log in')),
               IconButton(
                 key: const Key('account_button'),
                 tooltip: 'Account',
@@ -61,7 +63,7 @@ class AccountView extends StatelessWidget {
             )),
           Card(child: ListTile(
             leading: const CircleAvatar(child: Icon(Icons.person)),
-            title: Text(s.isGuest ? 'Guest' : (sb.auth.currentUser?.email ?? 'Account')),
+            title: Text(s.isGuest ? 'Guest' : (_email() ?? 'Account')),
             subtitle: Text(_planLine(s, d)),
             trailing: s.isGuest ? TextButton(onPressed: () => requireAccount(context), child: const Text('Log in')) : null,
           )),
@@ -78,6 +80,14 @@ class AccountView extends StatelessWidget {
         ]);
       },
     );
+  }
+
+  String? _email() {
+    try {
+      return sb.auth.currentUser?.email;
+    } catch (_) {
+      return null;
+    }
   }
 
   String _planLine(dynamic s, DateTime? d) {

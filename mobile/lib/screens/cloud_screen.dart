@@ -126,7 +126,7 @@ class _CloudScreenState extends State<CloudScreen> {
               if (s.isGuest)
                 _Prompt(text: 'Log in to get 15 GB free cloud storage', button: 'Log in', onTap: () async { await requireAccount(context); await _load(); })
               else if (quota == 0 && app.showPrices)
-                _Prompt(text: 'Get cloud storage with Premium', button: 'See plans', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PremiumScreen())))
+                _Prompt(text: 'Get 2 TB with Premium', button: 'See plans', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PremiumScreen())))
               else if (quota == 0)
                 const _Prompt(text: 'Cloud storage is not available on your account yet.'),
               for (final f in _files)
