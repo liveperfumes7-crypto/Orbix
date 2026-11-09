@@ -1,0 +1,26 @@
+name: sql-tests
+on:
+  pull_request:
+    paths: ["supabase/**"]
+  push:
+    branches: [main]
+    paths: ["supabase/**"]
+jobs:
+  sql:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with: { version: latest }
+      - name: Start local Supabase and apply migrations
+        run: supabase start
+      - name: Run rule tests (report is raised as an exception; fail on any FAIL line)
+        run: |
+          set -u
+          DB=postgresql://postgres:postgres@127.0.0.1:54322/postgres
+          for f in supabase/tests/*.sql; do
+            out=$(psql "$DB" -v ON_ERROR_STOP=0 -f "$f" 2>&1 || true)
+            echo "$out"
+            if echo "$out" | grep -q "FAIL"; then echo "::error::$f has failing checks"; exit 1; fi
+            echo "$out" | grep -q "PASS" || { echo "::error::$f produced no report"; exit 1; }
+          done

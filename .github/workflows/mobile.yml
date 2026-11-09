@@ -1,0 +1,74 @@
+name: mobile
+on:
+  pull_request:
+    paths: ["mobile/**"]
+  push:
+    branches: [main]
+    paths: ["mobile/**"]
+env:
+  FLUTTER_VERSION: "3.27.4"   # pinned
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: mobile } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with: { flutter-version: "${{ env.FLUTTER_VERSION }}", cache: true }
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 17 }
+      - name: Generate Android scaffolding (keeps files already in the repo)
+        run: flutter create --platforms=android --org com.orbix --project-name orbix .
+      - run: flutter pub get
+      - run: flutter analyze --no-fatal-infos
+      - run: flutter test
+      - name: Play-build test (PLAY_STORE=true)
+        run: flutter test --dart-define=PLAY_STORE=true
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: mobile } }
+    env:
+      KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with: { flutter-version: "${{ env.FLUTTER_VERSION }}", cache: true }
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 17 }
+      - run: flutter create --platforms=android --org com.orbix --project-name orbix .
+      - run: flutter pub get
+      - name: Write signing config from secrets (never committed)
+        if: env.KEYSTORE_B64 != ''
+        run: |
+          echo "$KEYSTORE_B64" | base64 -d > android/release.jks
+          cat > android/key.properties <<KP
+          storeFile=../release.jks
+          storePassword=${{ secrets.ANDROID_STORE_PASSWORD }}
+          keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}
+          keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}
+          KP
+      - name: Website APK (direct)
+        run: flutter build apk --release --flavor direct --dart-define=AUTH_SCHEME=com.orbix.app
+      - run: cp build/app/outputs/flutter-apk/app-direct-release.apk ../Orbix.apk
+      - name: Ads APK (direct + referrer define)
+        run: flutter build apk --release --flavor direct --dart-define=AUTH_SCHEME=com.orbix.app --dart-define=APK_REFERRER="utm_source=meta&utm_medium=paid_social&utm_campaign=apk_download"
+      - run: cp build/app/outputs/flutter-apk/app-direct-release.apk ../Orbix-ads.apk
+      - name: Play AAB
+        run: flutter build appbundle --release --flavor play --dart-define=PLAY_STORE=true --dart-define=AUTH_SCHEME=com.orbix.play
+      - run: cp build/app/outputs/bundle/playRelease/app-play-release.aab ../Orbix-play.aab
+      - name: Checksums and manifest checks
+        working-directory: .
+        run: |
+          sha256sum Orbix.apk Orbix-ads.apk Orbix-play.aab | tee checksums.txt
+          # merged-manifest assertions
+          grep -q 'com.orbix.app' mobile/build/app/intermediates/merged_manifests/directRelease/*/AndroidManifest.xml || (echo "direct package missing"; exit 1)
+          ! grep -q 'permission.AD_ID' mobile/build/app/intermediates/merged_manifests/directRelease/*/AndroidManifest.xml || (echo "AD_ID present"; exit 1)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Orbix-apks
+          path: |
+            Orbix.apk
+            Orbix-ads.apk
+            Orbix-play.aab
+            checksums.txt

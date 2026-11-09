@@ -1,0 +1,22 @@
+import { supabaseServer } from "@/lib/supabase/server";
+import { rowsOf } from "@/lib/format";
+import Table, { type Action } from "../Table";
+
+export const dynamic = "force-dynamic";
+
+const ACTIONS: Action[] = [
+  { label: "Close", rpc: "admin_close_request", args: (r) => ({ p_id: r.id }), show: (r) => r.status !== "closed" },
+  { label: "Grant full access", rpc: "set_ads_access", args: (r) => ({ p_user: r.user_id, p_status: "approved" }), show: (r) => r.kind === "full_access" && !!r.user_id },
+];
+
+export default async function Requests() {
+  const sb = supabaseServer();
+  const { data, error } = await sb.rpc("admin_requests", { p_status: "open" });
+  return (
+    <div className="space-y-4">
+      <h1 className="text-xl font-semibold">Requests &amp; reports</h1>
+      {error && <p className="text-danger text-sm">{error.message}</p>}
+      <Table rows={rowsOf(data)} actions={ACTIONS} empty="No open requests." />
+    </div>
+  );
+}
