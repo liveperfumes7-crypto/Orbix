@@ -7,7 +7,9 @@ import '../theme.dart';
 import 'login_sheet.dart';
 
 class ChannelsScreen extends StatefulWidget {
-  const ChannelsScreen({super.key});
+  const ChannelsScreen({super.key, this.standalone = false});
+  /// True when opened from Profile > My channels (adds a back button).
+  final bool standalone;
   @override
   State<ChannelsScreen> createState() => _ChannelsScreenState();
 }
@@ -81,22 +83,42 @@ class _ChannelsScreenState extends State<ChannelsScreen> {
   Widget build(BuildContext context) {
     AppScope.of(context);
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: widget.standalone ? Tokens.background : Colors.transparent,
+      appBar: widget.standalone ? AppBar(title: const Text('My channels')) : null,
       floatingActionButton: FloatingActionButton.extended(onPressed: _create, icon: const Icon(Icons.add), label: const Text('Create')),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
               onRefresh: _load,
               child: _rows.isEmpty
-                  ? ListView(children: const [SizedBox(height: 120), Center(child: Text('No channels yet.', style: TextStyle(color: Tokens.muted)))])
-                  : ListView(children: [
+                  ? ListView(children: const [SizedBox(height: 80), Center(child: Text('No channels yet.', style: TextStyle(color: Tokens.muted)))])
+                  : ListView(padding: const EdgeInsets.fromLTRB(16, 12, 16, 88), children: [
+                      if (!widget.standalone) const Padding(padding: EdgeInsets.only(bottom: 8), child: Text('Channels', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700))),
                       for (final r in _rows)
-                        ListTile(
-                          title: Text(r['name'] ?? ''),
-                          subtitle: Text(r['review_status'] == 'pending' ? 'Waiting for approval' : '${r['members_count'] ?? 0} members', style: const TextStyle(color: Tokens.muted)),
-                          trailing: r['review_status'] == 'pending'
-                              ? null
-                              : OutlinedButton(onPressed: () => _toggle(r['id'] as String), child: Text(_joined.contains(r['id']) ? 'Leave' : 'Join')),
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: Container(
+                            decoration: BoxDecoration(color: Tokens.surface, borderRadius: BorderRadius.circular(16), border: Border.all(color: Tokens.border)),
+                            child: ListTile(
+                              contentPadding: const EdgeInsets.fromLTRB(12, 2, 12, 2),
+                              leading: Container(
+                                width: 40,
+                                height: 40,
+                                decoration: BoxDecoration(color: Tokens.primary.withValues(alpha: .15), borderRadius: BorderRadius.circular(12)),
+                                alignment: Alignment.center,
+                                child: Text(((r['name'] as String?) ?? '?').isEmpty ? '?' : (r['name'] as String)[0].toUpperCase(), style: const TextStyle(color: Tokens.primary, fontWeight: FontWeight.w700)),
+                              ),
+                              title: Text(r['name'] ?? '', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
+                              subtitle: Text(r['review_status'] == 'pending' ? 'Waiting for approval' : '${r['members_count'] ?? 0} members', style: const TextStyle(color: Tokens.muted, fontSize: 12)),
+                              trailing: r['review_status'] == 'pending'
+                                  ? null
+                                  : OutlinedButton(
+                                      style: OutlinedButton.styleFrom(visualDensity: VisualDensity.compact, padding: const EdgeInsets.symmetric(horizontal: 14)),
+                                      onPressed: () => _toggle(r['id'] as String),
+                                      child: Text(_joined.contains(r['id']) ? 'Leave' : 'Join'),
+                                    ),
+                            ),
+                          ),
                         ),
                     ]),
             ),

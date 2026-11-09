@@ -27,12 +27,16 @@ ThemeData buildTheme() {
       surface: Tokens.surface,
       error: Tokens.danger,
     ),
-    textTheme: GoogleFonts.poppinsTextTheme(base.textTheme).apply(bodyColor: Tokens.text, displayColor: Tokens.text),
+    textTheme: GoogleFonts.poppinsTextTheme(base.textTheme).apply(bodyColor: Tokens.text, displayColor: Tokens.text, heightFactor: .88),
+    listTileTheme: const ListTileThemeData(dense: true, contentPadding: EdgeInsets.symmetric(horizontal: 12), minVerticalPadding: 4, horizontalTitleGap: 12),
+    dividerTheme: const DividerThemeData(color: Tokens.border, space: 1, thickness: 1),
+    snackBarTheme: const SnackBarThemeData(behavior: SnackBarBehavior.floating),
     cardTheme: CardTheme(
+      margin: EdgeInsets.zero,
       color: Tokens.surface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: const BorderSide(color: Tokens.border)),
     ),
-    appBarTheme: const AppBarTheme(backgroundColor: Tokens.background, elevation: 0),
+    appBarTheme: const AppBarTheme(backgroundColor: Tokens.background, elevation: 0, scrolledUnderElevation: 0, centerTitle: false, titleSpacing: 0, toolbarHeight: 52, titleTextStyle: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Tokens.text)),
     navigationBarTheme: const NavigationBarThemeData(backgroundColor: Tokens.surface, indicatorColor: Tokens.primary),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,

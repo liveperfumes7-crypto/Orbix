@@ -57,11 +57,11 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
         index: _i,
         onTap: (v) => setState(() => _i = v),
         items: [
-          const NavItem(Icons.cloud_outlined, 'Cloud'),
-          const NavItem(Icons.grid_view_rounded, 'Home'),
-          const NavItem(Icons.explore_outlined, 'Explore'),
-          const NavItem(Icons.tv_outlined, 'Channel'),
-          premiumTab ? const NavItem(Icons.workspace_premium_outlined, 'Premium') : const NavItem(Icons.person_outline, 'Profile'),
+          const NavItem(Icons.cloud_outlined, 'Cloud', Icons.cloud),
+          const NavItem(Icons.grid_view_outlined, 'Home', Icons.grid_view_rounded),
+          const NavItem(Icons.explore_outlined, 'Explore', Icons.explore),
+          const NavItem(Icons.live_tv_outlined, 'Channel', Icons.live_tv),
+          premiumTab ? const NavItem(Icons.workspace_premium_outlined, 'Premium', Icons.workspace_premium) : const NavItem(Icons.person_outline, 'Profile', Icons.person),
         ],
       ),
     );

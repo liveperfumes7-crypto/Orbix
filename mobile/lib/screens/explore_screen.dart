@@ -64,16 +64,18 @@ class _PostListState extends State<PostList> {
     return RefreshIndicator(
       onRefresh: () => _load(reset: true),
       child: _rows.isEmpty
-          ? ListView(children: const [SizedBox(height: 120), Center(child: Text('Nothing here yet.', style: TextStyle(color: Tokens.muted)))])
+          ? ListView(children: const [SizedBox(height: 80), Center(child: Text('Nothing here yet.', style: TextStyle(color: Tokens.muted)))])
           : ListView.builder(
+              padding: const EdgeInsets.only(bottom: 12),
               itemCount: _rows.length + (_more ? 1 : 0),
               itemBuilder: (_, i) {
                 if (i == _rows.length) { _load(); return const Padding(padding: EdgeInsets.all(16), child: Center(child: CircularProgressIndicator())); }
                 final r = _rows[i];
                 final ch = (r['channels'] as Map?)?['name'] ?? '';
                 return ListTile(
-                  title: Text(r['title'] ?? '', maxLines: 2, overflow: TextOverflow.ellipsis),
-                  subtitle: Text(ch.toString(), style: const TextStyle(color: Tokens.muted)),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                  title: Text(r['title'] ?? '', maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
+                  subtitle: Text(ch.toString(), style: const TextStyle(color: Tokens.muted, fontSize: 12)),
                   trailing: ((r['post_items'] as List?) ?? []).any((e) => e['is_premium'] == true)
                       ? const Icon(Icons.workspace_premium, color: Tokens.gold, semanticLabel: 'Premium')
                       : null,
@@ -107,10 +109,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
     final app = AppScope.of(context);
     return Column(children: [
       Padding(
-        padding: const EdgeInsets.fromLTRB(16, 8, 8, 0),
+        padding: const EdgeInsets.fromLTRB(16, 12, 8, 0),
         child: Row(children: [
-          Container(width: 32, height: 32, decoration: BoxDecoration(color: Tokens.primary, borderRadius: BorderRadius.circular(8)), alignment: Alignment.center, child: const Text('OB', style: TextStyle(fontWeight: FontWeight.bold))),
-          const SizedBox(width: 10),
           const Expanded(child: Text('Explore', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700))),
           if (app.showPremiumEntry)
             IconButton(
@@ -121,7 +121,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
         ]),
       ),
       Padding(
-        padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
         child: TextField(
           key: const Key('explore_search'),
           textInputAction: TextInputAction.search,
@@ -130,12 +130,12 @@ class _ExploreScreenState extends State<ExploreScreen> {
         ),
       ),
       SizedBox(
-        height: 48,
+        height: 42,
         child: ListView(scrollDirection: Axis.horizontal, padding: const EdgeInsets.symmetric(horizontal: 12), children: [
           for (final c in [null, ...cats])
             Padding(
-              padding: const EdgeInsets.all(4),
-              child: ChoiceChip(label: Text(c ?? 'All'), selected: _cat == c, onSelected: (_) => setState(() => _cat = c)),
+              padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 4),
+              child: ChoiceChip(visualDensity: VisualDensity.compact, label: Text(c ?? 'All', style: const TextStyle(fontSize: 13)), selected: _cat == c, onSelected: (_) => setState(() => _cat = c)),
             ),
         ]),
       ),

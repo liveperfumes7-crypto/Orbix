@@ -72,18 +72,18 @@ class _HomeScreenState extends State<HomeScreen> {
       onRefresh: _load,
       child: ListView(padding: const EdgeInsets.fromLTRB(16, 12, 16, 24), children: [
         Row(children: [
-          const Expanded(child: Text('Home', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w700))),
+          const Expanded(child: Text('Home', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700))),
           _SquareButton(key: const Key('home_search'), onTap: widget.onSearch, child: const Icon(Icons.search)),
           const SizedBox(width: 10),
-          _SquareButton(key: const Key('home_avatar'), onTap: widget.onProfile, child: Text(_initial(app), style: const TextStyle(color: Tokens.primary, fontWeight: FontWeight.w700, fontSize: 18))),
+          _SquareButton(key: const Key('home_avatar'), onTap: widget.onProfile, child: Text(_initial(app), style: const TextStyle(color: Tokens.primary, fontWeight: FontWeight.w700, fontSize: 16))),
         ]),
-        const SizedBox(height: 22),
+        const SizedBox(height: 14),
         Row(children: [
-          const Expanded(child: Text('Channels', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600))),
-          TextButton(onPressed: widget.onSeeAllChannels, child: const Text('See all', style: TextStyle(color: Tokens.accent))),
+          const Expanded(child: Text('Channels', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600))),
+          TextButton(style: TextButton.styleFrom(visualDensity: VisualDensity.compact, padding: const EdgeInsets.symmetric(horizontal: 8)), onPressed: widget.onSeeAllChannels, child: const Text('See all', style: TextStyle(color: Tokens.accent, fontSize: 13))),
         ]),
         SizedBox(
-          height: 108,
+          height: 92,
           child: _channels.isEmpty
               ? Center(child: Text(_loading ? '' : 'No channels yet', style: const TextStyle(color: Tokens.muted)))
               : ListView.separated(
@@ -94,24 +94,24 @@ class _HomeScreenState extends State<HomeScreen> {
                     final name = (_channels[i]['name'] as String?) ?? '';
                     return GestureDetector(
                       onTap: widget.onSeeAllChannels,
-                      child: SizedBox(width: 76, child: Column(children: [
+                      child: SizedBox(width: 68, child: Column(children: [
                         Container(
-                          width: 76,
-                          height: 76,
-                          decoration: BoxDecoration(color: Tokens.surface, borderRadius: BorderRadius.circular(20), border: Border.all(color: Tokens.border)),
+                          width: 68,
+                          height: 68,
+                          decoration: BoxDecoration(color: Tokens.surface, borderRadius: BorderRadius.circular(18), border: Border.all(color: Tokens.border)),
                           alignment: Alignment.center,
-                          child: Text(name.isEmpty ? '?' : name[0].toUpperCase(), style: const TextStyle(fontSize: 30, fontWeight: FontWeight.w700, color: Tokens.primary)),
+                          child: Text(name.isEmpty ? '?' : name[0].toUpperCase(), style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w700, color: Tokens.primary)),
                         ),
-                        const SizedBox(height: 6),
+                        const SizedBox(height: 4),
                         Text(name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Tokens.muted, fontSize: 12)),
                       ])),
                     );
                   },
                 ),
         ),
-        const SizedBox(height: 14),
-        const Text('New shows', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
-        const SizedBox(height: 12),
+        const SizedBox(height: 10),
+        const Text('New shows', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600)),
+        const SizedBox(height: 10),
         if (_loading)
           const Padding(padding: EdgeInsets.all(32), child: Center(child: CircularProgressIndicator()))
         else if (_posts.isEmpty)
@@ -121,7 +121,7 @@ class _HomeScreenState extends State<HomeScreen> {
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: _posts.length,
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, crossAxisSpacing: 10, mainAxisSpacing: 14, childAspectRatio: .58),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, crossAxisSpacing: 10, mainAxisSpacing: 10, childAspectRatio: .62),
             itemBuilder: (_, i) {
               final r = _posts[i];
               final url = _thumbFor(r);
@@ -139,7 +139,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                   const SizedBox(height: 6),
-                  Text((r['title'] as String?) ?? '', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Tokens.muted, fontWeight: FontWeight.w500)),
+                  Text((r['title'] as String?) ?? '', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Tokens.muted, fontWeight: FontWeight.w500, fontSize: 12)),
                 ]),
               );
             },
@@ -155,8 +155,8 @@ class _SquareButton extends StatelessWidget {
   final VoidCallback? onTap;
   @override
   Widget build(BuildContext context) => InkWell(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(14),
         onTap: onTap,
-        child: Container(width: 52, height: 52, decoration: BoxDecoration(color: Tokens.surface, borderRadius: BorderRadius.circular(18), border: Border.all(color: Tokens.border)), alignment: Alignment.center, child: child),
+        child: Container(width: 44, height: 44, decoration: BoxDecoration(color: Tokens.surface, borderRadius: BorderRadius.circular(14), border: Border.all(color: Tokens.border)), alignment: Alignment.center, child: child),
       );
 }

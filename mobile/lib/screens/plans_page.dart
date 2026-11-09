@@ -114,7 +114,7 @@ class _PlansPageState extends State<PlansPage> {
       ),
       child: Column(children: [
         Expanded(
-          child: ListView(padding: const EdgeInsets.fromLTRB(20, 12, 20, 8), children: [
+          child: ListView(padding: const EdgeInsets.fromLTRB(16, 8, 16, 8), children: [
             if (widget.showHeader)
               Row(children: [
                 const Icon(Icons.workspace_premium, color: Tokens.gold, size: 30),
@@ -132,9 +132,9 @@ class _PlansPageState extends State<PlansPage> {
               SizedBox(width: 10),
               Expanded(child: _Perk(Icons.download_outlined, 'Offline\ndownloads')),
             ]),
-            const SizedBox(height: 22),
-            const Text('Choose your plan', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
+            const Text('Choose your plan', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 10),
             if (widget.paused)
               Container(
                 margin: const EdgeInsets.only(bottom: 12),
@@ -199,7 +199,7 @@ class _PlanTile extends StatelessWidget {
     final price = plan['price_inr'] as num;
     final badge = plan['badge'] as String?;
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: 10),
       child: Material(
         color: Colors.transparent,
         child: Ink(
@@ -213,14 +213,14 @@ class _PlanTile extends StatelessWidget {
             borderRadius: BorderRadius.circular(22),
             onTap: onTap,
             child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 14),
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
               child: Row(children: [
-                SizedBox(width: 84, child: Center(child: Text(free ? 'FREE' : '₹$price', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w700)))),
-                Container(width: 1, height: 44, margin: const EdgeInsets.symmetric(horizontal: 12), color: Colors.white.withValues(alpha: .18)),
+                SizedBox(width: 84, child: Center(child: Text(free ? 'FREE' : '₹$price', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700)))),
+                Container(width: 1, height: 40, margin: const EdgeInsets.symmetric(horizontal: 12), color: Colors.white.withValues(alpha: .18)),
                 Expanded(
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Wrap(crossAxisAlignment: WrapCrossAlignment.center, spacing: 8, children: [
-                      Text('${plan['name']} Plan', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+                      Text('${plan['name']} Plan', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                       if (badge != null)
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),

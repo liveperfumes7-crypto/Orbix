@@ -73,7 +73,7 @@ class AccountView extends StatelessWidget {
           _Group(children: [
             if (s.isPremium || app.showPrices)
               _Row(Icons.receipt_long_outlined, 'Payment history', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PaymentHistoryScreen()))),
-            _Row(Icons.groups_outlined, 'My channels', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ChannelsScreen()))),
+            _Row(Icons.groups_outlined, 'My channels', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ChannelsScreen(standalone: true)))),
           ]),
           const SizedBox(height: 12),
           _Group(children: [

@@ -115,13 +115,14 @@ class _CloudScreenState extends State<CloudScreen> {
       floatingActionButton: quota > 0 ? FloatingActionButton.extended(onPressed: _upload, icon: const Icon(Icons.upload), label: const Text('Upload')) : null,
       body: _loading
           ? const Center(child: CircularProgressIndicator())
-          : ListView(padding: const EdgeInsets.all(16), children: [
-              Card(child: Padding(padding: const EdgeInsets.all(16), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          : ListView(padding: const EdgeInsets.fromLTRB(16, 12, 16, 88), children: [
+              const Padding(padding: EdgeInsets.only(bottom: 10), child: Text('Cloud', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700))),
+              Card(child: Padding(padding: const EdgeInsets.all(14), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 const Text('Storage', style: TextStyle(fontWeight: FontWeight.w600)),
                 const SizedBox(height: 8),
-                LinearProgressIndicator(value: quota == 0 ? 0 : (s.usedBytes / quota).clamp(0.0, 1.0), minHeight: 8),
+                ClipRRect(borderRadius: BorderRadius.circular(6), child: LinearProgressIndicator(value: quota == 0 ? 0 : (s.usedBytes / quota).clamp(0.0, 1.0), minHeight: 8, backgroundColor: Tokens.border)),
                 const SizedBox(height: 8),
-                Text('${fmtBytes(s.usedBytes)} of ${fmtBytes(quota)} used', style: const TextStyle(color: Tokens.muted)),
+                Text('${fmtBytes(s.usedBytes)} of ${fmtBytes(quota)} used', style: const TextStyle(color: Tokens.muted, fontSize: 13)),
                 if (_progress != null) const Padding(padding: EdgeInsets.only(top: 8), child: LinearProgressIndicator()),
               ]))),
               if (s.isGuest)
@@ -153,10 +154,10 @@ class _Prompt extends StatelessWidget {
   final VoidCallback? onTap;
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12),
+        padding: const EdgeInsets.symmetric(vertical: 14),
         child: Column(children: [
-          Text(text, textAlign: TextAlign.center),
-          if (button != null) Padding(padding: const EdgeInsets.only(top: 8), child: GradientButton(label: button!, onPressed: onTap)),
+          Text(text, textAlign: TextAlign.center, style: const TextStyle(color: Tokens.muted)),
+          if (button != null) Padding(padding: const EdgeInsets.only(top: 10), child: GradientButton(label: button!, onPressed: onTap)),
         ]),
       );
 }

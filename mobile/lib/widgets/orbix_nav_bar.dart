@@ -3,8 +3,9 @@ import 'package:flutter/material.dart';
 import '../theme.dart';
 
 class NavItem {
-  const NavItem(this.icon, this.label);
+  const NavItem(this.icon, this.label, [this.selectedIcon]);
   final IconData icon;
+  final IconData? selectedIcon;
   final String label;
 }
 
@@ -21,7 +22,7 @@ class OrbixNavBar extends StatelessWidget {
         child: SafeArea(
           top: false,
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(6, 8, 6, 8),
+            padding: const EdgeInsets.fromLTRB(8, 6, 8, 6),
             child: Row(children: [
               for (var i = 0; i < items.length; i++)
                 Expanded(
@@ -35,12 +36,12 @@ class OrbixNavBar extends StatelessWidget {
                       onTap: () => onTap(i),
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 180),
-                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        padding: const EdgeInsets.symmetric(vertical: 6),
                         decoration: BoxDecoration(color: i == index ? Tokens.primary : Colors.transparent, borderRadius: BorderRadius.circular(24)),
                         child: Column(mainAxisSize: MainAxisSize.min, children: [
-                          Icon(items[i].icon, color: i == index ? Colors.white : Tokens.muted),
-                          const SizedBox(height: 2),
-                          Text(items[i].label, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12, fontWeight: i == index ? FontWeight.w600 : FontWeight.w400, color: i == index ? Colors.white : Tokens.muted)),
+                          Icon(i == index ? (items[i].selectedIcon ?? items[i].icon) : items[i].icon, size: 22, color: i == index ? Colors.white : Tokens.muted),
+                          const SizedBox(height: 1),
+                          Text(items[i].label, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 11, fontWeight: i == index ? FontWeight.w600 : FontWeight.w400, color: i == index ? Colors.white : Tokens.muted)),
                         ]),
                       ),
                     ),

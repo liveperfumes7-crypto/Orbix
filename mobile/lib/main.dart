@@ -25,6 +25,10 @@ class OrbixApp extends StatelessWidget {
         title: Config.appName,
         debugShowCheckedModeBanner: false,
         theme: buildTheme(),
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(context).copyWith(textScaler: MediaQuery.textScalerOf(context).clamp(minScaleFactor: .9, maxScaleFactor: 1.1)),
+          child: child!,
+        ),
         home: ConsentGate(child: AppScope(state: state, child: const HomeShell())),
       );
 }
