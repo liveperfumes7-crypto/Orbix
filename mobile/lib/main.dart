@@ -9,7 +9,7 @@ import 'theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Supabase.initialize(url: Config.supabaseUrl, anonKey: Config.supabaseKey);
+  await Supabase.initialize(url: Config.supabaseUrl, publishableKey: Config.supabaseKey);
   final state = AppState();
   runApp(OrbixApp(state: state));
   state.start();

@@ -44,7 +44,7 @@ class ProfileScreen extends StatelessWidget {
             ListTile(leading: const Icon(Icons.logout), title: const Text('Log out'), onTap: () async { await sb.auth.signOut(); await sb.auth.signInAnonymously(); await app.refresh(); }),
             ListTile(leading: const Icon(Icons.delete_forever, color: Tokens.danger), title: const Text('Delete account'), onTap: () => _deleteAccount(context, app)),
           ],
-          Padding(padding: const EdgeInsets.only(top: 16), child: Center(child: Text('Version ${Config.versionLabel}', key: const Key('version_label'), style: const TextStyle(color: Tokens.muted)))),
+          const Padding(padding: EdgeInsets.only(top: 16), child: Center(child: Text('Version ${Config.versionLabel}', key: Key('version_label'), style: TextStyle(color: Tokens.muted)))),
         ]);
       },
     );

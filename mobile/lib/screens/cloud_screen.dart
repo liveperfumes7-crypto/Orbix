@@ -55,7 +55,7 @@ class _CloudScreenState extends State<CloudScreen> {
     if (!await requireAccount(context) || !mounted) return;
     final pick = await FilePicker.platform.pickFiles(withData: false);
     final f = pick?.files.single;
-    if (f == null || f.path == null) return;
+    if (f == null || f.path == null || !mounted) return;
     final messenger = ScaffoldMessenger.of(context);
     setState(() => _progress = 0);
     try {
@@ -70,7 +70,8 @@ class _CloudScreenState extends State<CloudScreen> {
     } catch (_) {
       messenger.showSnackBar(const SnackBar(content: Text('Upload failed')));
     }
-    if (mounted) setState(() => _progress = null);
+    if (!mounted) return;
+    setState(() => _progress = null);
     await AppScope.of(context).refresh();
     await _load();
   }
@@ -81,8 +82,9 @@ class _CloudScreenState extends State<CloudScreen> {
   }
 
   Future<void> _delete(String id) async {
+    final app = AppScope.of(context);
     await _fn({'action': 'delete', 'id': id});
-    await AppScope.of(context).refresh();
+    await app.refresh();
     await _load();
   }
 
