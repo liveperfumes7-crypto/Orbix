@@ -18,7 +18,7 @@ jobs:
       - uses: actions/setup-java@v4
         with: { distribution: temurin, java-version: 17 }
       - name: Generate Android scaffolding (keeps files already in the repo)
-        run: flutter create --platforms=android --org com.orbix --project-name orbix .
+        run: flutter create --platforms=android --org com.orbix --project-name orbix . && rm -f android/app/build.gradle
       - run: flutter pub get
       - run: flutter analyze --no-fatal-infos
       - run: flutter test
@@ -36,7 +36,7 @@ jobs:
         with: { flutter-version: "${{ env.FLUTTER_VERSION }}", cache: true }
       - uses: actions/setup-java@v4
         with: { distribution: temurin, java-version: 17 }
-      - run: flutter create --platforms=android --org com.orbix --project-name orbix .
+      - run: flutter create --platforms=android --org com.orbix --project-name orbix . && rm -f android/app/build.gradle && rm -f android/app/build.gradle
       - run: flutter pub get
       - name: Write signing config from secrets (never committed)
         if: env.KEYSTORE_B64 != ''
