@@ -43,7 +43,24 @@ Widget fakeWeb(BuildContext c, Uri u) => Text('WEB $u', key: const Key('fake_web
 
 AppState appWith(Map<String, dynamic> m) => AppState()..status = AppStatus(m);
 
+const playBuild = bool.fromEnvironment('PLAY_STORE');
+
 void main() {
+  group('Play build hides purchases', () {
+    for (final e in types.entries) {
+      testWidgets('${e.key}: Profile is the account card, no plans page', (tester) async {
+        final t = e.value;
+        final app = appWith(st(guest: t['guest']!, ads: t['ads']!, plan: t['plan']!));
+        await tester.pumpWidget(host(app, ProfileScreen(webViewBuilder: fakeWeb)));
+        await tester.pump();
+        expect(find.byKey(const Key('account_view')), findsOneWidget);
+        expect(find.byKey(const Key('fake_web')), findsNothing);
+      });
+    }
+  }, skip: !playBuild);
+
+  if (playBuild) return;
+
   group('Profile tab', () {
     for (final e in types.entries) {
       final t = e.value;
