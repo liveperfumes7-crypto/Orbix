@@ -50,6 +50,9 @@ void main() {
     });
 
     testWidgets('lists every plan, selects Popular by default, CTA follows selection', (tester) async {
+      tester.view.physicalSize = const Size(800, 2400);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
       String? bought;
       await tester.pumpWidget(MaterialApp(home: Scaffold(body: PlansPage(plansLoader: plans, onBuy: (id) async => bought = id))));
       await tester.pumpAndSettle();
