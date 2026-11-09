@@ -4,8 +4,9 @@ import '../services/app_scope.dart';
 import 'channels_screen.dart';
 import 'cloud_screen.dart';
 import 'explore_screen.dart';
-import 'feed_screen.dart';
+import 'home_screen.dart';
 import 'profile_screen.dart';
+import '../widgets/orbix_nav_bar.dart';
 
 class HomeShell extends StatefulWidget {
   const HomeShell({super.key});
@@ -14,7 +15,7 @@ class HomeShell extends StatefulWidget {
 }
 
 class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
-  int _i = 0;
+  int _i = 1;
 
   @override
   void initState() {
@@ -40,18 +41,27 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    const pages = [ExploreScreen(), FeedScreen(), ChannelsScreen(), CloudScreen(), ProfileScreen()];
+    final app = AppScope.of(context);
+    // Plans-first users see a crown "Premium" tab; plan holders / hidden-plans users see "Profile".
+    final premiumTab = app.showPremiumEntry && !app.status.isPremium;
+    final pages = [
+      const CloudScreen(),
+      HomeScreen(onSearch: () => setState(() => _i = 2), onProfile: () => setState(() => _i = 4), onSeeAllChannels: () => setState(() => _i = 3)),
+      const ExploreScreen(),
+      const ChannelsScreen(),
+      const ProfileScreen(),
+    ];
     return Scaffold(
-      body: SafeArea(child: IndexedStack(index: _i, children: pages)),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _i,
-        onDestinationSelected: (v) => setState(() => _i = v),
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.explore_outlined), selectedIcon: Icon(Icons.explore), label: 'Explore'),
-          NavigationDestination(icon: Icon(Icons.dynamic_feed_outlined), selectedIcon: Icon(Icons.dynamic_feed), label: 'Feed'),
-          NavigationDestination(icon: Icon(Icons.groups_outlined), selectedIcon: Icon(Icons.groups), label: 'Channels'),
-          NavigationDestination(icon: Icon(Icons.cloud_outlined), selectedIcon: Icon(Icons.cloud), label: 'Cloud'),
-          NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'Profile'),
+      body: SafeArea(bottom: false, child: IndexedStack(index: _i, children: pages)),
+      bottomNavigationBar: OrbixNavBar(
+        index: _i,
+        onTap: (v) => setState(() => _i = v),
+        items: [
+          const NavItem(Icons.cloud_outlined, 'Cloud'),
+          const NavItem(Icons.grid_view_rounded, 'Home'),
+          const NavItem(Icons.explore_outlined, 'Explore'),
+          const NavItem(Icons.tv_outlined, 'Channel'),
+          premiumTab ? const NavItem(Icons.workspace_premium_outlined, 'Premium') : const NavItem(Icons.person_outline, 'Profile'),
         ],
       ),
     );

@@ -8,9 +8,10 @@ import 'premium_screen.dart';
 
 /// Shared post list used by Explore (all) and Feed (joined channels).
 class PostList extends StatefulWidget {
-  const PostList({super.key, this.joinedOnly = false, this.category});
+  const PostList({super.key, this.joinedOnly = false, this.category, this.query = ''});
   final bool joinedOnly;
   final String? category;
+  final String query;
   @override
   State<PostList> createState() => _PostListState();
 }
@@ -29,7 +30,7 @@ class _PostListState extends State<PostList> {
   @override
   void didUpdateWidget(PostList old) {
     super.didUpdateWidget(old);
-    if (old.category != widget.category) _load(reset: true);
+    if (old.category != widget.category || old.query != widget.query) _load(reset: true);
   }
 
   Future<void> _load({bool reset = false}) async {
@@ -47,6 +48,7 @@ class _PostListState extends State<PostList> {
       var q = sb.from('posts').select('id,title,description,created_at,channel_id,channels(name,category),post_items(thumbnail_key,is_premium,duration_s)');
       if (widget.category != null) q = q.eq('channels.category', widget.category!);
       if (joined != null) q = q.inFilter('channel_id', joined);
+      if (widget.query.trim().isNotEmpty) q = q.ilike('title', '%${widget.query.trim().replaceAll('%', '')}%');
       final data = await q.order('created_at', ascending: false).range(_rows.length, _rows.length + _page - 1);
       _rows.addAll(List<Map<String, dynamic>>.from(data));
       _more = data.length == _page;
@@ -97,6 +99,7 @@ class ExploreScreen extends StatefulWidget {
 
 class _ExploreScreenState extends State<ExploreScreen> {
   String? _cat;
+  String _q = '';
   static const cats = ['Movies', 'Music', 'Education', 'Gaming', 'Lifestyle', 'Tech', 'Other'];
 
   @override
@@ -108,7 +111,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
         child: Row(children: [
           Container(width: 32, height: 32, decoration: BoxDecoration(color: Tokens.primary, borderRadius: BorderRadius.circular(8)), alignment: Alignment.center, child: const Text('OB', style: TextStyle(fontWeight: FontWeight.bold))),
           const SizedBox(width: 10),
-          const Expanded(child: Text('Orbix', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600))),
+          const Expanded(child: Text('Explore', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700))),
           if (app.showPremiumEntry)
             IconButton(
               tooltip: 'Premium',
@@ -116,6 +119,15 @@ class _ExploreScreenState extends State<ExploreScreen> {
               onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PremiumScreen())),
             ),
         ]),
+      ),
+      Padding(
+        padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+        child: TextField(
+          key: const Key('explore_search'),
+          textInputAction: TextInputAction.search,
+          decoration: const InputDecoration(hintText: 'Search', prefixIcon: Icon(Icons.search), isDense: true),
+          onSubmitted: (v) => setState(() => _q = v),
+        ),
       ),
       SizedBox(
         height: 48,
@@ -127,7 +139,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
             ),
         ]),
       ),
-      Expanded(child: PostList(category: _cat)),
+      Expanded(child: PostList(category: _cat, query: _q)),
     ]);
   }
 }

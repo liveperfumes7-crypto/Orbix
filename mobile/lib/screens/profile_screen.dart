@@ -7,13 +7,14 @@ import '../services/app_state.dart';
 import '../theme.dart';
 import 'login_sheet.dart';
 import 'payment_status_screen.dart';
+import 'plans_page.dart';
 import 'premium_screen.dart';
 
 /// Profile tab: users without an active plan (when plans are visible to them) land on the
 /// plans page directly; everyone else gets the account view. Reacts live to status changes.
 class ProfileScreen extends StatelessWidget {
-  const ProfileScreen({super.key, this.webViewBuilder});
-  final Widget Function(BuildContext, Uri)? webViewBuilder;
+  const ProfileScreen({super.key, this.plansLoader});
+  final PlansLoader? plansLoader;
 
   @override
   Widget build(BuildContext context) {
@@ -23,7 +24,8 @@ class ProfileScreen extends StatelessWidget {
       builder: (context, _) {
         if (app.showPremiumEntry && !app.status.isPremium) {
           return PremiumScreen(
-            webViewBuilder: webViewBuilder,
+            plansLoader: plansLoader,
+            embedded: true,
             actions: [
               if (app.status.isGuest)
                 TextButton(key: const Key('login_link'), onPressed: () => requireAccount(context), child: const Text('Log in')),

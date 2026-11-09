@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'config.dart';
+import 'screens/consent_gate.dart';
 import 'screens/home_shell.dart';
 import 'services/app_scope.dart';
 import 'services/app_state.dart';
@@ -24,6 +25,6 @@ class OrbixApp extends StatelessWidget {
         title: Config.appName,
         debugShowCheckedModeBanner: false,
         theme: buildTheme(),
-        home: AppScope(state: state, child: const HomeShell()),
+        home: ConsentGate(child: AppScope(state: state, child: const HomeShell())),
       );
 }

@@ -39,7 +39,10 @@ Widget host(AppState app, Widget child) => MaterialApp(
       ),
     );
 
-Widget fakeWeb(BuildContext c, Uri u) => Text('WEB $u', key: const Key('fake_web'));
+Future<List<Map<String, dynamic>>> fakePlans() async => [
+      {'id': 'p1', 'name': 'Trial', 'price_inr': 49, 'duration_days': 7, 'badge': null, 'position': 1},
+      {'id': 'p3', 'name': 'Gold', 'price_inr': 259, 'duration_days': 30, 'badge': 'Popular', 'position': 3},
+    ];
 
 AppState appWith(Map<String, dynamic> m) => AppState()..status = AppStatus(m);
 
@@ -51,10 +54,10 @@ void main() {
       testWidgets('${e.key}: Profile is the account card, no plans page', (tester) async {
         final t = e.value;
         final app = appWith(st(guest: t['guest']!, ads: t['ads']!, plan: t['plan']!));
-        await tester.pumpWidget(host(app, ProfileScreen(webViewBuilder: fakeWeb)));
-        await tester.pump();
+        await tester.pumpWidget(host(app, ProfileScreen(plansLoader: fakePlans)));
+        await tester.pumpAndSettle();
         expect(find.byKey(const Key('account_view')), findsOneWidget);
-        expect(find.byKey(const Key('fake_web')), findsNothing);
+        expect(find.byKey(const Key('plans_page')), findsNothing);
       });
     }
   }, skip: !playBuild);
@@ -66,16 +69,16 @@ void main() {
       final t = e.value;
       testWidgets('${e.key}: ${t['plan']! ? 'account card first' : 'plans page opens directly'}', (tester) async {
         final app = appWith(st(guest: t['guest']!, ads: t['ads']!, plan: t['plan']!, quota: t['plan']! ? 2 * 1024 * 1024 * 1024 * 1024 : 0));
-        await tester.pumpWidget(host(app, ProfileScreen(webViewBuilder: fakeWeb)));
-        await tester.pump();
+        await tester.pumpWidget(host(app, ProfileScreen(plansLoader: fakePlans)));
+        await tester.pumpAndSettle();
         if (t['plan']!) {
           expect(find.byKey(const Key('account_view')), findsOneWidget);
           expect(find.text('Upgrade / Renew'), findsOneWidget);
-          expect(find.byKey(const Key('fake_web')), findsNothing);
+          expect(find.byKey(const Key('plans_page')), findsNothing);
           expect(find.textContaining('Gold active until'), findsOneWidget);
         } else {
-          expect(find.byKey(const Key('fake_web')), findsOneWidget);
-          expect(find.textContaining('app=1'), findsOneWidget);
+          expect(find.byKey(const Key('plans_page')), findsOneWidget);
+          expect(find.text('Get Gold Plan · ₹259'), findsOneWidget);
           expect(find.byKey(const Key('account_button')), findsOneWidget);
           expect(find.byKey(const Key('login_link')), t['guest']! ? findsOneWidget : findsNothing);
         }
@@ -88,34 +91,34 @@ void main() {
 
     testWidgets('live switch: plan bought -> account card; plan revoked -> plans again', (tester) async {
       final app = appWith(st());
-      await tester.pumpWidget(host(app, ProfileScreen(webViewBuilder: fakeWeb)));
-      await tester.pump();
-      expect(find.byKey(const Key('fake_web')), findsOneWidget);
+      await tester.pumpWidget(host(app, ProfileScreen(plansLoader: fakePlans)));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('plans_page')), findsOneWidget);
       app.status = AppStatus(st(plan: true, quota: 1));
       app.notifyListeners();
-      await tester.pump();
+      await tester.pumpAndSettle();
       expect(find.byKey(const Key('account_view')), findsOneWidget);
       app.status = AppStatus(st());
       app.notifyListeners();
-      await tester.pump();
-      expect(find.byKey(const Key('fake_web')), findsOneWidget);
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('plans_page')), findsOneWidget);
     });
 
     testWidgets('free mode: account card, no prices entry', (tester) async {
       final app = appWith(st(free: true, quota: 15 * 1024 * 1024 * 1024));
-      await tester.pumpWidget(host(app, ProfileScreen(webViewBuilder: fakeWeb)));
-      await tester.pump();
+      await tester.pumpWidget(host(app, ProfileScreen(plansLoader: fakePlans)));
+      await tester.pumpAndSettle();
       expect(find.byKey(const Key('account_view')), findsOneWidget);
-      expect(find.byKey(const Key('fake_web')), findsNothing);
+      expect(find.byKey(const Key('plans_page')), findsNothing);
       expect(find.text('Upgrade / Renew'), findsNothing);
     });
 
     testWidgets('plans hidden for this group: account card, no Premium entry', (tester) async {
       final app = appWith(st(visible: false));
-      await tester.pumpWidget(host(app, ProfileScreen(webViewBuilder: fakeWeb)));
-      await tester.pump();
+      await tester.pumpWidget(host(app, ProfileScreen(plansLoader: fakePlans)));
+      await tester.pumpAndSettle();
       expect(find.byKey(const Key('account_view')), findsOneWidget);
-      expect(find.byKey(const Key('fake_web')), findsNothing);
+      expect(find.byKey(const Key('plans_page')), findsNothing);
       expect(find.text('Payment history'), findsNothing);
     });
   });

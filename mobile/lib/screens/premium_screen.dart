@@ -10,22 +10,26 @@ import '../services/app_state.dart';
 import '../theme.dart';
 import 'login_sheet.dart';
 import 'payment_status_screen.dart';
+import 'plans_page.dart';
 
 /// Premium entry. Which of the four states shows is decided by the SERVER values in my_status.
 class PremiumScreen extends StatelessWidget {
-  const PremiumScreen({super.key, this.webViewBuilder, this.actions = const []});
+  const PremiumScreen({super.key, this.plansLoader, this.actions = const [], this.embedded = false});
 
   /// Extra app-bar buttons (Profile uses this for the Account button).
   final List<Widget> actions;
 
-  /// Lets tests replace the real WebView.
-  final Widget Function(BuildContext, Uri)? webViewBuilder;
+  /// Lets tests replace the server call that lists plans.
+  final PlansLoader? plansLoader;
+
+  /// Inside the Profile tab: no app bar, the plans page draws its own "Go Premium" header.
+  final bool embedded;
 
   @override
   Widget build(BuildContext context) {
     final app = AppScope.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Premium'), actions: actions),
+      appBar: embedded ? null : AppBar(title: const Text('Premium'), actions: actions),
       body: ListenableBuilder(
         listenable: app,
         builder: (context, _) {
@@ -36,11 +40,18 @@ class PremiumScreen extends StatelessWidget {
           if (!s.plansVisible) {
             return s.isPremium ? const _ActivePlan() : const Center(child: Text('Premium is not available right now.'));
           }
-          // 3) Paid mode, plans visible: website plans page in a WebView.
-          final uri = subscribeUri(freeIds: app.freePlanIds.toList(), paused: !s.paymentsAvailable);
+          // 3) Paid mode, plans visible: native plans page ("Go Premium").
+          final page = PlansPage(
+            plansLoader: plansLoader,
+            freeIds: app.freePlanIds,
+            paused: !s.paymentsAvailable,
+            showHeader: embedded,
+            actions: actions,
+            onBuy: (id) => startPurchase(context, id),
+          );
           return Column(children: [
             if (s.isPremium) const _ActivePlan(),
-            Expanded(child: webViewBuilder?.call(context, uri) ?? PlansWebView(uri: uri)),
+            Expanded(child: page),
           ]);
         },
       ),
