@@ -55,5 +55,5 @@ class PendingQueue {
   }
 
   /// Backoff delay for the n-th attempt, capped at 5 minutes.
-  static Duration backoff(int attempts) => Duration(seconds: (2 << attempts.clamp(0, 7)).clamp(2, 300));
+  static Duration backoff(int attempts) => Duration(seconds: (2 << attempts.clamp(0, 8)).clamp(2, 300));
 }
