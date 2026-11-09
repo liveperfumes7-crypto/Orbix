@@ -28,6 +28,8 @@ jobs:
   build:
     needs: test
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     defaults: { run: { working-directory: mobile } }
     env:
       KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
@@ -90,3 +92,11 @@ jobs:
             Orbix-ads.apk
             Orbix-play.aab
             checksums.txt
+      - name: Publish public release (latest)
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && env.KEYSTORE_B64 != ''
+        working-directory: .
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view latest >/dev/null 2>&1 || gh release create latest --title "Orbix (latest)" --notes "Latest signed Orbix builds. Orbix.apk is the website download; Orbix-ads.apk is for ad campaigns." --latest=false
+          gh release upload latest Orbix.apk Orbix-ads.apk checksums.txt --clobber
