@@ -5,6 +5,7 @@ import '../config.dart';
 import '../services/app_scope.dart';
 import '../services/app_state.dart';
 import '../theme.dart';
+import 'channels_screen.dart';
 import 'login_sheet.dart';
 import 'payment_status_screen.dart';
 import 'plans_page.dart';
@@ -47,6 +48,8 @@ class ProfileScreen extends StatelessWidget {
 class AccountView extends StatelessWidget {
   const AccountView({super.key});
 
+  Future<void> _web(String path) => launchUrl(Uri.parse('${Config.websiteUrl}$path'), mode: LaunchMode.externalApplication);
+
   @override
   Widget build(BuildContext context) {
     final app = AppScope.of(context);
@@ -55,32 +58,42 @@ class AccountView extends StatelessWidget {
       builder: (context, _) {
         final s = app.status;
         final d = s.planEndsAt;
-        return ListView(padding: const EdgeInsets.all(16), children: [
-          if (app.showPremiumEntry && s.isPremium)
-            Card(child: ListTile(
-              leading: const Icon(Icons.workspace_premium, color: Tokens.gold),
-              title: const Text('Upgrade / Renew'),
-              subtitle: const Text('Renewing extends your end date'),
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PremiumScreen())),
-            )),
-          Card(child: ListTile(
-            leading: const CircleAvatar(child: Icon(Icons.person)),
-            title: Text(s.isGuest ? 'Guest' : (_email() ?? 'Account')),
-            subtitle: Text(_planLine(s, d)),
+        return ListView(padding: const EdgeInsets.fromLTRB(16, 12, 16, 24), children: [
+          _AccountCard(
+            title: s.isGuest ? 'Guest' : (_email() ?? 'Account'),
+            subtitle: _planLine(s, d),
+            premium: s.isPremium,
             trailing: s.isGuest ? TextButton(onPressed: () => requireAccount(context), child: const Text('Log in')) : null,
-          )),
-          if (s.isPremium || app.showPrices)
-            ListTile(leading: const Icon(Icons.receipt_long), title: const Text('Payment history'), onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PaymentHistoryScreen()))),
-          const ListTile(leading: Icon(Icons.groups), title: Text('My channels')),
-          ListTile(leading: const Icon(Icons.privacy_tip_outlined), title: const Text('Privacy policy'), onTap: () => launchUrl(Uri.parse('${Config.websiteUrl}/privacy'), mode: LaunchMode.externalApplication)),
-          ListTile(leading: const Icon(Icons.description_outlined), title: const Text('Terms'), onTap: () => launchUrl(Uri.parse('${Config.websiteUrl}/terms'), mode: LaunchMode.externalApplication)),
-          ListTile(leading: const Icon(Icons.currency_rupee), title: const Text('Refund policy'), onTap: () => launchUrl(Uri.parse('${Config.websiteUrl}/refund'), mode: LaunchMode.externalApplication)),
-          ListTile(leading: const Icon(Icons.groups_outlined), title: const Text('Community guidelines'), onTap: () => launchUrl(Uri.parse('${Config.websiteUrl}/community-guidelines'), mode: LaunchMode.externalApplication)),
-          if (!s.isGuest) ...[
-            ListTile(leading: const Icon(Icons.logout), title: const Text('Log out'), onTap: () async { await sb.auth.signOut(); await sb.auth.signInAnonymously(); await app.refresh(); }),
-            ListTile(leading: const Icon(Icons.delete_forever, color: Tokens.danger), title: const Text('Delete account'), onTap: () => _deleteAccount(context, app)),
+          ),
+          if (app.showPremiumEntry && s.isPremium) ...[
+            const SizedBox(height: 10),
+            _UpgradeCard(onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PremiumScreen()))),
           ],
-          const Padding(padding: EdgeInsets.only(top: 16), child: Center(child: Text('Version ${Config.versionLabel}', key: Key('version_label'), style: TextStyle(color: Tokens.muted)))),
+          const SizedBox(height: 14),
+          _Group(children: [
+            if (s.isPremium || app.showPrices)
+              _Row(Icons.receipt_long_outlined, 'Payment history', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PaymentHistoryScreen()))),
+            _Row(Icons.groups_outlined, 'My channels', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ChannelsScreen()))),
+          ]),
+          const SizedBox(height: 12),
+          _Group(children: [
+            _Row(Icons.privacy_tip_outlined, 'Privacy policy', onTap: () => _web('/privacy')),
+            _Row(Icons.description_outlined, 'Terms', onTap: () => _web('/terms')),
+            _Row(Icons.currency_rupee, 'Refund policy', onTap: () => _web('/refund')),
+            _Row(Icons.diversity_3_outlined, 'Community guidelines', onTap: () => _web('/community-guidelines')),
+          ]),
+          if (!s.isGuest) ...[
+            const SizedBox(height: 12),
+            _Group(children: [
+              _Row(Icons.logout, 'Log out', onTap: () async {
+                await sb.auth.signOut();
+                try { await sb.auth.signInAnonymously(); } catch (_) {}
+                await app.refresh();
+              }),
+              _Row(Icons.delete_outline, 'Delete account', color: Tokens.danger, onTap: () => _deleteAccount(context, app)),
+            ]),
+          ],
+          const Padding(padding: EdgeInsets.only(top: 18), child: Center(child: Text('Version ${Config.versionLabel}', key: Key('version_label'), style: TextStyle(color: Tokens.muted, fontSize: 12)))),
         ]);
       },
     );
@@ -113,10 +126,97 @@ class AccountView extends StatelessWidget {
     try {
       await sb.functions.invoke('delete-account');
       await sb.auth.signOut();
-      await sb.auth.signInAnonymously();
+      try { await sb.auth.signInAnonymously(); } catch (_) {}
       await app.refresh();
     } catch (_) {
       if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not delete. Please try again.')));
     }
   }
+}
+
+class _AccountCard extends StatelessWidget {
+  const _AccountCard({required this.title, required this.subtitle, required this.premium, this.trailing});
+  final String title, subtitle;
+  final bool premium;
+  final Widget? trailing;
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(color: Tokens.surface, borderRadius: BorderRadius.circular(18), border: Border.all(color: Tokens.border)),
+        child: Row(children: [
+          CircleAvatar(radius: 24, backgroundColor: Tokens.primary, child: Icon(premium ? Icons.workspace_premium : Icons.person, color: premium ? Tokens.gold : Colors.white)),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 2),
+              Text(subtitle, style: const TextStyle(color: Tokens.muted, fontSize: 13)),
+            ]),
+          ),
+          if (trailing != null) trailing!,
+        ]),
+      );
+}
+
+class _UpgradeCard extends StatelessWidget {
+  const _UpgradeCard({required this.onTap});
+  final VoidCallback onTap;
+  @override
+  Widget build(BuildContext context) => Material(
+        color: Colors.transparent,
+        child: Ink(
+          decoration: BoxDecoration(gradient: Tokens.gradient, borderRadius: BorderRadius.circular(18)),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(18),
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              child: Row(children: const [
+                Icon(Icons.workspace_premium, color: Tokens.gold),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text('Upgrade / Renew', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                    Text('Renewing extends your end date', style: TextStyle(fontSize: 12, color: Colors.white70)),
+                  ]),
+                ),
+                Icon(Icons.chevron_right),
+              ]),
+            ),
+          ),
+        ),
+      );
+}
+
+class _Group extends StatelessWidget {
+  const _Group({required this.children});
+  final List<Widget> children;
+  @override
+  Widget build(BuildContext context) => Container(
+        decoration: BoxDecoration(color: Tokens.surface, borderRadius: BorderRadius.circular(18), border: Border.all(color: Tokens.border)),
+        clipBehavior: Clip.antiAlias,
+        child: Column(children: [
+          for (var i = 0; i < children.length; i++) ...[
+            if (i > 0) const Divider(height: 1, indent: 52, color: Tokens.border),
+            children[i],
+          ],
+        ]),
+      );
+}
+
+class _Row extends StatelessWidget {
+  const _Row(this.icon, this.label, {required this.onTap, this.color});
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final Color? color;
+  @override
+  Widget build(BuildContext context) => ListTile(
+        dense: true,
+        visualDensity: const VisualDensity(vertical: -1),
+        leading: Icon(icon, size: 22, color: color),
+        title: Text(label, style: TextStyle(fontSize: 15, color: color)),
+        trailing: color == null ? const Icon(Icons.chevron_right, size: 20, color: Tokens.muted) : null,
+        onTap: onTap,
+      );
 }

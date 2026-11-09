@@ -16,12 +16,17 @@ class PaymentStatusScreen extends StatefulWidget {
 class _PaymentStatusScreenState extends State<PaymentStatusScreen> {
   Map<String, dynamic>? _o;
   Timer? _t;
+  AppState? _app;
+  int _ticks = 0;
 
   @override
-  void initState() {
-    super.initState();
-    _check();
-    _t = Timer.periodic(const Duration(seconds: 5), (_) => _check());
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_app == null) {
+      _app = AppScope.of(context);
+      _check();
+      _t = Timer.periodic(const Duration(seconds: 2), (_) => _check());
+    }
   }
 
   @override
@@ -31,13 +36,19 @@ class _PaymentStatusScreenState extends State<PaymentStatusScreen> {
   }
 
   Future<void> _check() async {
-    final app = AppScope.of(context);
-    final o = await app.orderStatus(widget.orderId);
-    if (!mounted) return;
-    setState(() => _o = o);
-    final st = o?['status'];
-    if (st == 'paid') { _t?.cancel(); app.refresh(); }
-    if (st == 'failed' || st == 'cancelled') _t?.cancel();
+    final app = _app;
+    if (app == null) return;
+    _ticks++;
+    try {
+      // Re-send a stored result if the first report did not reach the server.
+      if (_ticks % 5 == 1) await app.flushPending();
+      final o = await app.orderStatus(widget.orderId);
+      if (!mounted) return;
+      setState(() => _o = o);
+      final st = o?['status'];
+      if (st == 'paid') { _t?.cancel(); app.refresh(); }
+      if (st == 'failed' || st == 'cancelled' || st == 'rejected') _t?.cancel();
+    } catch (_) {/* try again on the next tick */}
   }
 
   @override
