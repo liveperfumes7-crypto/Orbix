@@ -28,7 +28,9 @@ class AppState extends ChangeNotifier {
 
   Future<void> start() async {
     if (sb.auth.currentSession == null) {
-      await sb.auth.signInAnonymously();
+      try {
+        await sb.auth.signInAnonymously();
+      } catch (_) {/* guest session unavailable: browse with the public guest status */}
     }
     await _recordInstallOnce();
     await refresh();
@@ -61,13 +63,21 @@ class AppState extends ChangeNotifier {
 
   Future<void> refresh() async {
     try {
-      final r = await sb.rpc('my_status');
+      final r = await sb.rpc(sb.auth.currentSession == null ? 'guest_status' : 'my_status');
       status = AppStatus(Map<String, dynamic>.from(r as Map));
       if (status.plansVisible && !Config.playStore) {
         final o = await sb.rpc('plan_offers');
         freePlanIds = {...((o as Map)['free_plan_ids'] as List? ?? const []).map((e) => e.toString())};
       }
-    } catch (_) {/* keep last known */}
+    } catch (_) {
+      // keep last known; if we never had a real status, use the public guest status
+      if (!loaded) {
+        try {
+          final r = await sb.rpc('guest_status');
+          status = AppStatus(Map<String, dynamic>.from(r as Map));
+        } catch (_) {}
+      }
+    }
     loaded = true;
     notifyListeners();
   }
