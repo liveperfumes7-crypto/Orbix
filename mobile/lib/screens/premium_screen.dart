@@ -178,14 +178,14 @@ Future<void> startPurchase(BuildContext context, String planId) async {
   final messenger = ScaffoldMessenger.of(context);
   final nav = Navigator.of(context);
 
-  // Look the plan up in the live catalog.
+  // Guests log in first, then the plan is looked up in the live catalog.
+  if (!await requireAccount(context)) return;
+  if (!context.mounted) return;
   final plan = await sb.from('plans').select('id,name,price_inr,active').eq('id', planId).eq('active', true).maybeSingle();
   if (plan == null) {
     messenger.showSnackBar(const SnackBar(content: Text('This plan is no longer available.')));
     return;
   }
-  if (!context.mounted) return;
-  if (!await requireAccount(context)) return;
   if (!context.mounted) return;
 
   try {

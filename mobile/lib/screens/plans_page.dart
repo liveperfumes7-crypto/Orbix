@@ -119,16 +119,18 @@ class _PlansPageState extends State<PlansPage> {
               Row(children: [
                 const Icon(Icons.workspace_premium, color: Tokens.gold, size: 30),
                 const SizedBox(width: 10),
-                const Expanded(child: Text('Go Premium', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w700))),
+                const Expanded(child: Text('Go Premium', maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700))),
                 ...widget.actions,
               ]),
+            const SizedBox(height: 6),
+            const Text('Unlock more space, full-length videos and downloads.', style: TextStyle(color: Tokens.muted, fontSize: 13)),
             const SizedBox(height: 16),
             Row(children: const [
-              Expanded(child: _Perk('2 TB\ncloud')),
+              Expanded(child: _Perk(Icons.cloud_outlined, '2 TB\ncloud')),
               SizedBox(width: 10),
-              Expanded(child: _Perk('Full\nvideos')),
+              Expanded(child: _Perk(Icons.play_circle_outline, 'Full\nvideos')),
               SizedBox(width: 10),
-              Expanded(child: _Perk('Offline\ndownloads')),
+              Expanded(child: _Perk(Icons.download_outlined, 'Offline\ndownloads')),
             ]),
             const SizedBox(height: 22),
             const Text('Choose your plan', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
@@ -170,13 +172,18 @@ class _PlansPageState extends State<PlansPage> {
 }
 
 class _Perk extends StatelessWidget {
-  const _Perk(this.text);
+  const _Perk(this.icon, this.text);
+  final IconData icon;
   final String text;
   @override
   Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 8),
-        decoration: BoxDecoration(color: Tokens.surface.withValues(alpha: .9), borderRadius: BorderRadius.circular(20), border: Border.all(color: Tokens.border)),
-        child: Text(text, textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.w600, height: 1.25)),
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 6),
+        decoration: BoxDecoration(color: Tokens.surface.withValues(alpha: .9), borderRadius: BorderRadius.circular(18), border: Border.all(color: Tokens.border)),
+        child: Column(children: [
+          Icon(icon, color: Tokens.primary, size: 26),
+          const SizedBox(height: 6),
+          Text(text, textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, height: 1.25)),
+        ]),
       );
 }
 

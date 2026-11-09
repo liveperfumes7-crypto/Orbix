@@ -37,6 +37,11 @@ class _LoginSheetState extends State<LoginSheet> {
     try {
       final email = _email.text.trim();
       if (_signup) {
+        if (sb.auth.currentSession == null) {
+          await sb.auth.signUp(email: email, password: _pass.text, emailRedirectTo: '${Config.authScheme}://login-callback');
+          setState(() => _info = 'Check your email to confirm your account, then log in.');
+          return;
+        }
         // Guest -> member upgrade keeps the same user id (and guest data).
         await sb.auth.updateUser(
           UserAttributes(email: email, password: _pass.text),
