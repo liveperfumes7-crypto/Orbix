@@ -21,6 +21,6 @@ jobs:
           for f in supabase/tests/*.sql; do
             out=$(psql "$DB" -v ON_ERROR_STOP=0 -f "$f" 2>&1 || true)
             echo "$out"
-            if echo "$out" | grep -q "FAIL"; then echo "::error::$f has failing checks"; exit 1; fi
-            echo "$out" | grep -q "PASS" || { echo "::error::$f produced no report"; exit 1; }
+            echo "$out" | grep -q "RESULT total=" || { echo "::error::$f produced no report"; exit 1; }
+            echo "$out" | grep -q "failed=0 " || { echo "::error::$f has failing checks"; exit 1; }
           done

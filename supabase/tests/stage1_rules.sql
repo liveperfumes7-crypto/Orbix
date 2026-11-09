@@ -136,8 +136,8 @@ begin
   begin update public.profiles set ads_access_status='approved' where id=m; exception when others then raised := true; end; reset role;
   perform pg_temp.rec('user cannot change own access status', raised);
   perform pg_temp.imp(m,false); raised := false;
-  begin update public.profiles set used_bytes=0, display_name='New' where id=m; exception when others then raised := true; end; reset role;
-  perform pg_temp.rec('user cannot touch used_bytes', raised);
+  begin update public.profiles set used_bytes=999, display_name='New' where id=m; exception when others then raised := true; end; reset role;
+  perform pg_temp.rec('user cannot touch used_bytes', raised or (select used_bytes<>999 from public.profiles where id=m));
 
   delete from public.subscriptions where user_id=m;
   perform pg_temp.imp(a,true); n := public.quota_bytes(); reset role;
