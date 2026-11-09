@@ -21,6 +21,7 @@ export default function SiteShell({ children, bare = false }: { children: React.
           <span>© Orbix</span>
           <Link href="/privacy">Privacy</Link>
           <Link href="/terms">Terms</Link>
+          <Link href="/refund">Refund policy</Link>
           <Link href="/delete-account">Delete account</Link>
           <Link href="/report-content">Report content</Link>
         </div>

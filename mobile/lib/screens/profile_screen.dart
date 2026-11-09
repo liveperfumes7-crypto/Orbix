@@ -74,6 +74,7 @@ class AccountView extends StatelessWidget {
           const ListTile(leading: Icon(Icons.groups), title: Text('My channels')),
           ListTile(leading: const Icon(Icons.privacy_tip_outlined), title: const Text('Privacy policy'), onTap: () => launchUrl(Uri.parse('${Config.websiteUrl}/privacy'), mode: LaunchMode.externalApplication)),
           ListTile(leading: const Icon(Icons.description_outlined), title: const Text('Terms'), onTap: () => launchUrl(Uri.parse('${Config.websiteUrl}/terms'), mode: LaunchMode.externalApplication)),
+          ListTile(leading: const Icon(Icons.currency_rupee), title: const Text('Refund policy'), onTap: () => launchUrl(Uri.parse('${Config.websiteUrl}/refund'), mode: LaunchMode.externalApplication)),
           if (!s.isGuest) ...[
             ListTile(leading: const Icon(Icons.logout), title: const Text('Log out'), onTap: () async { await sb.auth.signOut(); await sb.auth.signInAnonymously(); await app.refresh(); }),
             ListTile(leading: const Icon(Icons.delete_forever, color: Tokens.danger), title: const Text('Delete account'), onTap: () => _deleteAccount(context, app)),
