@@ -20,6 +20,7 @@ class PostList extends StatefulWidget {
 
 class _PostListState extends State<PostList> {
   final _rows = <Map<String, dynamic>>[];
+  final _thumbs = <String, String>{};
   bool _loading = true, _more = true, _fetching = false;
   int _gen = 0;
   static const _page = 20;
@@ -53,14 +54,17 @@ class _PostListState extends State<PostList> {
       }
       // !inner so a category filter really filters the posts (not just the embedded channel).
       final ch = widget.category != null ? 'channels!inner(name,category)' : 'channels(name,category)';
-      var q = sb.from('posts').select('id,title,description,created_at,channel_id,$ch,post_items(thumbnail_key,is_premium,duration_s)');
+      var q = sb.from('posts').select('id,title,description,created_at,channel_id,$ch,post_items(thumbnail_key,is_premium,duration_s,position)');
       if (widget.channelId != null) q = q.eq('channel_id', widget.channelId!);
       if (widget.category != null) q = q.eq('channels.category', widget.category!);
       if (joined != null) q = q.inFilter('channel_id', joined);
       if (widget.query.trim().isNotEmpty) q = q.ilike('title', '%${widget.query.trim().replaceAll('%', '')}%');
       final data = await q.order('created_at', ascending: false).range(_rows.length, _rows.length + _page - 1);
       if (gen != _gen) return; // a newer search/filter replaced this one
-      _rows.addAll(List<Map<String, dynamic>>.from(data));
+      final fresh = List<Map<String, dynamic>>.from(data);
+      _rows.addAll(fresh);
+      await _signThumbs(fresh);
+      if (gen != _gen) return;
       _more = data.length == _page;
     } catch (_) {
       if (gen == _gen) _more = false;
@@ -70,10 +74,33 @@ class _PostListState extends State<PostList> {
     if (mounted) setState(() => _loading = false);
   }
 
+  Map? _first(Map<String, dynamic> r) {
+    final items = (r['post_items'] as List?) ?? const [];
+    if (items.isEmpty) return null;
+    final sorted = [...items]..sort((a, b) => ((a as Map)['position'] as int? ?? 0).compareTo((b as Map)['position'] as int? ?? 0));
+    return sorted.first as Map;
+  }
+
+  /// Short-lived links for the thumbnails on this page. Posts without a thumbnail just show the placeholder.
+  Future<void> _signThumbs(List<Map<String, dynamic>> rows) async {
+    final keys = <String>{
+      for (final r in rows)
+        if (_first(r)?['thumbnail_key'] is String) _first(r)!['thumbnail_key'] as String,
+    }..removeAll(_thumbs.keys);
+    if (keys.isEmpty) return;
+    try {
+      final res = await sb.storage.from('media').createSignedUrls(keys.toList(), 3600);
+      for (final e in res) {
+        final k = e.path as String?;
+        if (k != null && e.signedUrl.isNotEmpty) _thumbs[k] = e.signedUrl;
+      }
+    } catch (_) {/* cards fall back to the placeholder */}
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_loading && _rows.isEmpty) {
-      return ListView.builder(itemCount: 5, itemBuilder: (_, __) => const Padding(padding: EdgeInsets.all(12), child: _Skeleton()));
+      return ListView.builder(itemCount: 5, itemBuilder: (_, __) => const Padding(padding: EdgeInsets.fromLTRB(16, 8, 16, 8), child: _Skeleton()));
     }
     return RefreshIndicator(
       onRefresh: () => _load(reset: true),
@@ -85,16 +112,29 @@ class _PostListState extends State<PostList> {
               itemBuilder: (_, i) {
                 if (i == _rows.length) { WidgetsBinding.instance.addPostFrameCallback((_) { if (mounted) _load(); }); return const Padding(padding: EdgeInsets.all(16), child: Center(child: CircularProgressIndicator())); }
                 final r = _rows[i];
-                final ch = (r['channels'] as Map?)?['name'] ?? '';
-                return ListTile(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
-                  leading: InitialAvatar(name: ch.toString(), size: 40),
-                  title: Text(r['title'] ?? '', maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
-                  subtitle: Text(ch.toString(), style: const TextStyle(color: Tokens.muted, fontSize: 12)),
-                  trailing: ((r['post_items'] as List?) ?? []).any((e) => e['is_premium'] == true)
-                      ? const Icon(Icons.workspace_premium, color: Tokens.gold, semanticLabel: 'Premium')
-                      : null,
+                final ch = ((r['channels'] as Map?)?['name'] ?? '').toString();
+                final first = _first(r);
+                final premium = ((r['post_items'] as List?) ?? []).any((e) => e['is_premium'] == true);
+                return InkWell(
                   onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PostPage(postId: r['id'] as String))),
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 10),
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      VideoThumb(url: _thumbs[first?['thumbnail_key']], seconds: first?['duration_s'] as int?, premium: premium),
+                      const SizedBox(height: 8),
+                      Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        InitialAvatar(name: ch, size: 36),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                            Text(r['title'] ?? '', maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                            const SizedBox(height: 2),
+                            Text(ch, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Tokens.muted, fontSize: 12)),
+                          ]),
+                        ),
+                      ]),
+                    ]),
+                  ),
                 );
               },
             ),
@@ -105,7 +145,7 @@ class _PostListState extends State<PostList> {
 class _Skeleton extends StatelessWidget {
   const _Skeleton();
   @override
-  Widget build(BuildContext context) => Container(height: 64, decoration: BoxDecoration(color: Tokens.surface, borderRadius: BorderRadius.circular(12)));
+  Widget build(BuildContext context) => AspectRatio(aspectRatio: 16 / 9, child: Container(decoration: BoxDecoration(color: Tokens.surface, borderRadius: BorderRadius.circular(14))));
 }
 
 class ExploreScreen extends StatefulWidget {

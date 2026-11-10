@@ -115,3 +115,56 @@ class PickTile extends StatelessWidget {
         ),
       );
 }
+
+String fmtDuration(Duration d) {
+  final h = d.inHours, m = d.inMinutes.remainder(60), s = d.inSeconds.remainder(60);
+  String two(int n) => n.toString().padLeft(2, '0');
+  return h > 0 ? '$h:${two(m)}:${two(s)}' : '$m:${two(s)}';
+}
+
+/// 16:9 video card image: thumbnail (or a placeholder), duration chip and a Premium badge.
+class VideoThumb extends StatelessWidget {
+  const VideoThumb({super.key, this.url, this.seconds, this.premium = false, this.radius = 14});
+  final String? url;
+  final int? seconds;
+  final bool premium;
+  final double radius;
+  @override
+  Widget build(BuildContext context) => ClipRRect(
+        borderRadius: BorderRadius.circular(radius),
+        child: AspectRatio(
+          aspectRatio: 16 / 9,
+          child: Stack(fit: StackFit.expand, children: [
+            Container(
+              decoration: const BoxDecoration(gradient: LinearGradient(colors: [Color(0xFF1B1B30), Color(0xFF2A2145)], begin: Alignment.topLeft, end: Alignment.bottomRight)),
+              child: const Center(child: Icon(Icons.play_circle_outline_rounded, color: Colors.white38, size: 44)),
+            ),
+            if (url != null) Image.network(url!, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const SizedBox.shrink()),
+            if (premium)
+              Positioned(
+                top: 8,
+                left: 8,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(color: Colors.black.withValues(alpha: .65), borderRadius: BorderRadius.circular(8)),
+                  child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(Icons.workspace_premium, color: Tokens.gold, size: 14),
+                    SizedBox(width: 4),
+                    Text('Premium', style: TextStyle(color: Tokens.gold, fontSize: 11, fontWeight: FontWeight.w600)),
+                  ]),
+                ),
+              ),
+            if (seconds != null && seconds! > 0)
+              Positioned(
+                right: 8,
+                bottom: 8,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(color: Colors.black.withValues(alpha: .7), borderRadius: BorderRadius.circular(6)),
+                  child: Text(fmtDuration(Duration(seconds: seconds!)), style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600)),
+                ),
+              ),
+          ]),
+        ),
+      );
+}
