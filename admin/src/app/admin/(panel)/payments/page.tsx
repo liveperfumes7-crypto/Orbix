@@ -6,10 +6,10 @@ import Link from "next/link";
 export const dynamic = "force-dynamic";
 
 const ACTIONS: Action[] = [
-  { label: "Mark paid", rpc: "admin_mark_paid", prompt: "Enter the 12-digit UTR from the bank statement", args: (r, i) => ({ p_order: r.id, p_utr: i }), show: (r) => r.status !== "paid" },
-  { label: "Confirm bank", rpc: "admin_confirm_bank", args: (r) => ({ p_order: r.id }), show: (r) => r.status === "paid" },
-  { label: "Reject", rpc: "admin_reject_order", prompt: "Reason / note", danger: true, args: (r, i) => ({ p_order: r.id, p_note: i ?? "" }), show: (r) => r.status !== "paid" && r.status !== "rejected" },
-  { label: "Revoke", rpc: "admin_revoke_order", prompt: "Reason / note", danger: true, args: (r, i) => ({ p_order: r.id, p_note: i ?? "" }), show: (r) => r.status === "paid" },
+  { label: "Mark paid", rpc: "admin_mark_paid", prompt: "Enter the 12-digit UTR from the bank statement", args: { p_order: "$row.id", p_utr: "$input" }, show: [{ field: "status", not: "paid" }] },
+  { label: "Confirm bank", rpc: "admin_confirm_bank", args: { p_order: "$row.id" }, show: [{ field: "status", is: "paid" }] },
+  { label: "Reject", rpc: "admin_reject_order", prompt: "Reason / note", danger: true, args: { p_order: "$row.id", p_note: "$input" }, show: [{ field: "status", not: "paid" }, { field: "status", not: "rejected" }] },
+  { label: "Revoke", rpc: "admin_revoke_order", prompt: "Reason / note", danger: true, args: { p_order: "$row.id", p_note: "$input" }, show: [{ field: "status", is: "paid" }] },
 ];
 
 export default async function Payments({ searchParams }: { searchParams: { status?: string; today?: string } }) {

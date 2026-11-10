@@ -5,10 +5,10 @@ import Table, { type Action } from "../Table";
 export const dynamic = "force-dynamic";
 
 const ACTIONS: Action[] = [
-  { label: "Approve (all)", rpc: "review_channel", args: (r) => ({ p_channel: r.id, p_approve: true, p_audience: "all" }) },
-  { label: "Approve (ads only)", rpc: "review_channel", args: (r) => ({ p_channel: r.id, p_approve: true, p_audience: "ads" }) },
-  { label: "Approve (organic only)", rpc: "review_channel", args: (r) => ({ p_channel: r.id, p_approve: true, p_audience: "organic" }) },
-  { label: "Reject", rpc: "review_channel", danger: true, args: (r) => ({ p_channel: r.id, p_approve: false, p_audience: "all" }) },
+  { label: "Approve (all)", rpc: "review_channel", args: { p_channel: "$row.id", p_approve: true, p_audience: "all" } },
+  { label: "Approve (ads only)", rpc: "review_channel", args: { p_channel: "$row.id", p_approve: true, p_audience: "ads" } },
+  { label: "Approve (organic only)", rpc: "review_channel", args: { p_channel: "$row.id", p_approve: true, p_audience: "organic" } },
+  { label: "Reject", rpc: "review_channel", danger: true, args: { p_channel: "$row.id", p_approve: false, p_audience: "all" } },
 ];
 
 export default async function Channels() {

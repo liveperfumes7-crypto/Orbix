@@ -3,15 +3,40 @@ import { useState } from "react";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { cell } from "@/lib/format";
 
+type Row = Record<string, unknown>;
+/** A visibility rule: every rule in the list must hold for the button to show. */
+export type Rule = { field: string; is?: unknown; not?: unknown; truthy?: boolean };
+
+/**
+ * Plain data only (no functions) so server pages can pass it to this client component.
+ * args values: "$row.<field>" = a field of the row, "$input" = the text the admin typed, anything else = literal.
+ */
 export type Action = {
   label: string;
   rpc: string;
-  /** maps a row to rpc args */
-  args: (row: Record<string, unknown>, input?: string) => Record<string, unknown>;
+  args: Record<string, unknown>;
   prompt?: string; // ask for text input (UTR, note…)
   danger?: boolean;
-  show?: (row: Record<string, unknown>) => boolean;
+  show?: Rule[];
 };
+
+const resolveArgs = (args: Record<string, unknown>, row: Row, input?: string) =>
+  Object.fromEntries(
+    Object.entries(args).map(([k, v]) => [
+      k,
+      v === "$input" ? input ?? "" : typeof v === "string" && v.startsWith("$row.") ? row[v.slice(5)] : v,
+    ]),
+  );
+
+const visible = (rules: Rule[] | undefined, row: Row) =>
+  !rules ||
+  rules.every((r) => {
+    const v = row[r.field];
+    if ("is" in r && v !== r.is) return false;
+    if ("not" in r && v === r.not) return false;
+    if (r.truthy !== undefined && !!v !== r.truthy) return false;
+    return true;
+  });
 
 export default function Table({
   rows,
@@ -35,7 +60,7 @@ export default function Table({
       if (input === undefined) return;
     } else if (!window.confirm(`${a.label}?`)) return;
     setBusy(`${a.rpc}${i}`);
-    const { error } = await supabaseBrowser().rpc(a.rpc, a.args(row, input));
+    const { error } = await supabaseBrowser().rpc(a.rpc, resolveArgs(a.args, row, input));
     setBusy("");
     if (error) setMsg("Error: " + error.message);
     else window.location.reload();
@@ -58,7 +83,7 @@ export default function Table({
               {cols.map((c) => <td key={c} className="td">{cell(c, r[c])}</td>)}
               {actions.length > 0 && (
                 <td className="td whitespace-nowrap space-x-2">
-                  {actions.filter((a) => !a.show || a.show(r)).map((a) => (
+                  {actions.filter((a) => visible(a.show, r)).map((a) => (
                     <button key={a.label} className={a.danger ? "btn-danger" : "btn-ghost"} disabled={busy === `${a.rpc}${i}`} onClick={() => run(a, r, i)}>
                       {a.label}
                     </button>

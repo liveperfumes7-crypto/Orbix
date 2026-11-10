@@ -5,8 +5,8 @@ import Table, { type Action } from "../Table";
 export const dynamic = "force-dynamic";
 
 const ACTIONS: Action[] = [
-  { label: "Close", rpc: "admin_close_request", args: (r) => ({ p_id: r.id }), show: (r) => r.status !== "closed" },
-  { label: "Grant full access", rpc: "set_ads_access", args: (r) => ({ p_user: r.user_id, p_status: "approved" }), show: (r) => r.kind === "full_access" && !!r.user_id },
+  { label: "Close", rpc: "admin_close_request", args: { p_id: "$row.id" }, show: [{ field: "status", not: "closed" }] },
+  { label: "Grant full access", rpc: "set_ads_access", args: { p_user: "$row.user_id", p_status: "approved" }, show: [{ field: "kind", is: "full_access" }, { field: "user_id", truthy: true }] },
 ];
 
 export default async function Requests() {
