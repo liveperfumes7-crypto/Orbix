@@ -221,7 +221,7 @@ begin
 
   update public.meta_settings set enabled=true, pixel_id='1234567890', capi_token='tok';
   r := pg_temp.pay(u8, p_trial, 'METATX1234');
-  perform pg_temp.rec('Purchase + Lead events queued for paid order', (select count(*) from public.meta_events where user_id=u8 and event_name='Purchase')=1 and (select count(*) from public.meta_events where user_id=u8 and event_name='Lead')>=1);
+  perform pg_temp.rec('Purchase + InitiateCheckout events queued for paid order (with value)', (select count(*) from public.meta_events where user_id=u8 and event_name='Purchase' and value_inr>0)=1 and (select count(*) from public.meta_events where user_id=u8 and event_name='InitiateCheckout' and value_inr>0)>=1);
   update public.app_mode set free_plans_for='everyone'; update public.plans set free_eligible=true where id=p_silver;
   perform pg_temp.imp(u10,false); perform public.claim_free_plan(p_silver); reset role;
   perform pg_temp.rec('free promo claim queues no Purchase event', (select count(*) from public.meta_events where user_id=u10 and event_name='Purchase')=0);

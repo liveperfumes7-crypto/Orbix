@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../services/app_scope.dart';
 import '../services/app_state.dart';
 import '../theme.dart';
+import '../widgets/ui.dart';
 import 'channel_page.dart';
 import 'post_page.dart';
 
@@ -96,13 +97,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     return GestureDetector(
                       onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ChannelPage(channelId: _channels[i]['id'] as String, name: name))),
                       child: SizedBox(width: 68, child: Column(children: [
-                        Container(
-                          width: 68,
-                          height: 68,
-                          decoration: BoxDecoration(color: Tokens.surface, borderRadius: BorderRadius.circular(18), border: Border.all(color: Tokens.border)),
-                          alignment: Alignment.center,
-                          child: Text(name.isEmpty ? '?' : name[0].toUpperCase(), style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w700, color: Tokens.primary)),
-                        ),
+                        InitialAvatar(name: name, size: 68),
                         const SizedBox(height: 4),
                         Text(name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Tokens.muted, fontSize: 12)),
                       ])),
@@ -116,7 +111,7 @@ class _HomeScreenState extends State<HomeScreen> {
         if (_loading)
           const Padding(padding: EdgeInsets.all(32), child: Center(child: CircularProgressIndicator()))
         else if (_posts.isEmpty)
-          const Padding(padding: EdgeInsets.all(32), child: Center(child: Text('Nothing here yet.', style: TextStyle(color: Tokens.muted))))
+          const EmptyState(icon: Icons.movie_outlined, title: 'No shows yet', message: 'New videos from channels will appear here.')
         else
           GridView.builder(
             shrinkWrap: true,

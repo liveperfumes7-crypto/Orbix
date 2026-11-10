@@ -215,23 +215,36 @@ export async function addPlan(fd: FormData) {
 // ---------------- meta ----------------
 export async function saveMeta(fd: FormData) {
   const { sb } = await requireAdmin(true);
-  const patch: Record<string, unknown> = { pixel_id: str(fd, "pixel_id") || null, test_event_code: str(fd, "test_event_code") || null, enabled: fd.get("enabled") === "on" };
-  const token = str(fd, "capi_token");
+  const pixel = str(fd, "pixel_id").replace(/\s+/g, "");
+  if (pixel && !/^\d{5,20}$/.test(pixel)) flash("/admin/meta", { message: "The Pixel ID is a number of about 15 or 16 digits. Copy it from Events Manager." }, "");
+  // Not-null text columns: empty string means "not set".
+  const patch: Record<string, unknown> = { pixel_id: pixel, test_event_code: str(fd, "test_event_code"), enabled: fd.get("enabled") === "on", updated_at: new Date().toISOString() };
+  const token = str(fd, "capi_token").replace(/\s+/g, "");
   if (token) patch.capi_token = token; // write-only: an empty box keeps the saved token
-  if (fd.get("clear_token") === "on") patch.capi_token = null;
+  if (fd.get("clear_token") === "on") patch.capi_token = "";
   const { error } = await sb.from("meta_settings").update(patch).eq("id", 1);
-  flash("/admin/meta", error, "Meta settings saved.");
+  if (error) flash("/admin/meta", error, "");
+  // Check the new Pixel ID and token with Meta straight away, so a typo shows up now and not after ads are running.
+  const { data, error: fe } = await sb.functions.invoke("meta-send", { body: { action: "verify" } });
+  const d = (data ?? {}) as { ok?: boolean; name?: string; message?: string };
+  if (fe || !d.ok) flash("/admin/meta", { message: "Saved, but Meta did not accept this Pixel ID and token: " + (d.message ?? (await fnError(fe))?.message ?? "no answer") }, "");
+  flash("/admin/meta", null, `Saved and connected to pixel “${d.name ?? pixel}”. The website and all app events now use it.`);
 }
 
 export async function metaSend(fd: FormData) {
   const { sb } = await requireAdmin(true);
-  const test = str(fd, "kind") === "test";
-  const { data, error } = await sb.functions.invoke("meta-send", { body: { action: test ? "test" : "flush" } });
+  const kind = str(fd, "kind");
+  if (kind === "retry") {
+    const { data, error } = await sb.rpc("admin_meta_retry");
+    flash("/admin/meta", error, `${data ?? 0} failed event(s) queued again.`);
+  }
+  const { data, error } = await sb.functions.invoke("meta-send", { body: { action: kind === "test" ? "test" : kind === "verify" ? "verify" : "flush" } });
   const e = await fnError(error);
   if (e) flash("/admin/meta", e, "");
   const d = (data ?? {}) as Record<string, unknown>;
+  if (kind === "verify") flash("/admin/meta", d.ok ? null : { message: "Meta did not accept the Pixel ID and token: " + d.message }, `Connected to pixel “${d.name}”.`);
   if (d.skipped) flash("/admin/meta", { message: "Meta is not set up or not enabled yet." }, "");
-  if (test) flash("/admin/meta", d.ok ? null : { message: "Meta rejected the test event (status " + d.meta_status + "). Check the Pixel ID and token." }, "Test event sent. Check Events Manager → Test events.");
+  if (kind === "test") flash("/admin/meta", d.ok ? null : { message: String(d.message ?? "Meta rejected the test event.") }, "Test Purchase sent. Open Events Manager → Test events to see it.");
   flash("/admin/meta", null, `Sent ${d.sent ?? 0}, failed ${d.failed ?? 0}, still waiting ${d.pending ?? 0}.`);
 }
 

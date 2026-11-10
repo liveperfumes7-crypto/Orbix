@@ -7,6 +7,7 @@ import '../config.dart';
 import '../services/app_scope.dart';
 import '../services/app_state.dart';
 import '../theme.dart';
+import '../widgets/ui.dart';
 import 'login_sheet.dart';
 
 const reportReasons = ['Sexual/nude', 'Violence', 'Hate/harassment', 'Copyright', 'Spam/scam', 'Other'];
@@ -167,7 +168,7 @@ class _PostPageState extends State<PostPage> {
                   if (((p['description'] as String?) ?? '').isNotEmpty)
                     Padding(padding: const EdgeInsets.only(top: 4), child: Text(p['description'] as String, style: const TextStyle(color: Tokens.muted, fontSize: 13))),
                   const SizedBox(height: 12),
-                  if (_items.isEmpty) const Padding(padding: EdgeInsets.all(24), child: Center(child: Text('No media in this post yet.', style: TextStyle(color: Tokens.muted)))),
+                  if (_items.isEmpty) const EmptyState(icon: Icons.hourglass_empty_rounded, title: 'No video yet', message: 'The creator has not added a video to this post.'),
                   for (final it in _items)
                     Card(margin: const EdgeInsets.only(bottom: 8), child: ListTile(
                       leading: Icon((it['mime'] as String? ?? '').startsWith('video') ? Icons.play_circle_outline : Icons.image_outlined, color: Tokens.primary),

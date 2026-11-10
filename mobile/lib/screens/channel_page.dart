@@ -4,9 +4,11 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
+import 'package:video_thumbnail/video_thumbnail.dart' as vt;
 
 import '../services/app_state.dart';
 import '../theme.dart';
+import '../widgets/ui.dart';
 import 'explore_screen.dart';
 import 'login_sheet.dart';
 
@@ -81,20 +83,14 @@ class _ChannelPageState extends State<ChannelPage> {
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : c == null
-              ? const Center(child: Text('This channel is not available.', style: TextStyle(color: Tokens.muted)))
+              ? const Center(child: EmptyState(icon: Icons.tv_off_rounded, title: 'Channel not available', message: 'It may have been removed or is still being reviewed.'))
               : Column(children: [
                   Container(
                     margin: const EdgeInsets.fromLTRB(16, 8, 16, 8),
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(color: Tokens.surface, borderRadius: BorderRadius.circular(18), border: Border.all(color: Tokens.border)),
                     child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Container(
-                        width: 48,
-                        height: 48,
-                        decoration: BoxDecoration(color: Tokens.primary.withValues(alpha: .15), borderRadius: BorderRadius.circular(14)),
-                        alignment: Alignment.center,
-                        child: Text(name.isEmpty ? '?' : name[0].toUpperCase(), style: const TextStyle(color: Tokens.primary, fontWeight: FontWeight.w700, fontSize: 20)),
-                      ),
+                      InitialAvatar(name: name, size: 48),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -114,9 +110,15 @@ class _ChannelPageState extends State<ChannelPage> {
                     ]),
                   ),
                   if (_mine && !_approved)
-                    const Padding(
-                      padding: EdgeInsets.fromLTRB(16, 0, 16, 8),
-                      child: Text('You can add posts after this channel is approved.', style: TextStyle(color: Tokens.muted, fontSize: 13)),
+                    Container(
+                      margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(color: Tokens.warning.withValues(alpha: .1), borderRadius: BorderRadius.circular(12)),
+                      child: const Row(children: [
+                        Icon(Icons.hourglass_top_rounded, size: 18, color: Tokens.warning),
+                        SizedBox(width: 10),
+                        Expanded(child: Text('You can add posts after this channel is approved.', style: TextStyle(color: Tokens.muted, fontSize: 13))),
+                      ]),
                     ),
                   Expanded(child: PostList(key: ValueKey(_rev), channelId: widget.channelId)),
                 ]),
@@ -139,9 +141,9 @@ class NewPostScreen extends StatefulWidget {
 class _NewPostScreenState extends State<NewPostScreen> {
   final _title = TextEditingController();
   final _desc = TextEditingController();
-  PlatformFile? _file;
+  PlatformFile? _file, _trailer, _thumb;
   bool _premium = false, _busy = false;
-  String? _err;
+  String? _err, _stage;
 
   @override
   void dispose() {
@@ -150,28 +152,83 @@ class _NewPostScreenState extends State<NewPostScreen> {
     super.dispose();
   }
 
-  Future<void> _pick() async {
+  Future<PlatformFile?> _choose(FileType type) async {
     try {
-      final r = await FilePicker.platform.pickFiles(type: FileType.video, withData: false);
+      final r = await FilePicker.platform.pickFiles(type: type, withData: false);
       final f = r?.files.single;
-      if (f != null && f.path != null && mounted) setState(() { _file = f; _err = null; });
+      return (f != null && f.path != null) ? f : null;
     } catch (_) {
       if (mounted) setState(() => _err = 'Could not open the file picker.');
+      return null;
     }
   }
+
+  Future<void> _pick() async {
+    final f = await _choose(FileType.video);
+    if (f != null && mounted) setState(() { _file = f; _err = null; });
+  }
+
+  Future<void> _pickTrailer() async {
+    final f = await _choose(FileType.video);
+    if (f != null && mounted) setState(() { _trailer = f; _err = null; });
+  }
+
+  Future<void> _pickThumb() async {
+    final f = await _choose(FileType.image);
+    if (f != null && mounted) setState(() { _thumb = f; _err = null; });
+  }
+
+  String _ext(PlatformFile f, String fallback) => f.name.contains('.') ? f.name.split('.').last.toLowerCase() : fallback;
+  String _size(PlatformFile f) => '${f.name} · ${(f.size / (1 << 20)).toStringAsFixed(1)} MB';
 
   Future<void> _publish() async {
     final f = _file;
     if (_title.text.trim().isEmpty) return setState(() => _err = 'Add a title.');
     if (f == null || f.path == null) return setState(() => _err = 'Choose a video.');
-    setState(() { _busy = true; _err = null; });
-    final ext = f.name.contains('.') ? f.name.split('.').last.toLowerCase() : 'mp4';
+    setState(() { _busy = true; _err = null; _stage = 'Uploading video…'; });
+    final media = sb.storage.from('media');
+    final ext = _ext(f, 'mp4');
     final key = '${widget.channelId}/${const Uuid().v4()}.$ext';
-    var uploaded = false;
+    final uploaded = <String>[];
     try {
       await sb.rpc('accept_consent', params: {'p_policy': 'v1'});
-      await sb.storage.from('media').upload(key, File(f.path!), fileOptions: FileOptions(contentType: _mimeOf(ext)));
-      uploaded = true;
+      await media.upload(key, File(f.path!), fileOptions: FileOptions(contentType: _mimeOf(ext)));
+      uploaded.add(key);
+
+      String? trailerKey;
+      final t = _trailer;
+      if (t != null && t.path != null) {
+        if (mounted) setState(() => _stage = 'Uploading trailer…');
+        final te = _ext(t, 'mp4');
+        trailerKey = '${widget.channelId}/${const Uuid().v4()}.$te';
+        await media.upload(trailerKey, File(t.path!), fileOptions: FileOptions(contentType: _mimeOf(te)));
+        uploaded.add(trailerKey);
+      }
+
+      // Thumbnail: the chosen picture, or a frame from the video. A post still publishes if neither works.
+      String? thumbKey;
+      if (mounted) setState(() => _stage = 'Adding thumbnail…');
+      final th = _thumb;
+      try {
+        if (th != null && th.path != null) {
+          final ie = _ext(th, 'jpg');
+          thumbKey = '${widget.channelId}/${const Uuid().v4()}.$ie';
+          await media.upload(thumbKey, File(th.path!), fileOptions: FileOptions(contentType: ie == 'png' ? 'image/png' : ie == 'webp' ? 'image/webp' : 'image/jpeg'));
+          uploaded.add(thumbKey);
+        } else {
+          // No picture chosen: take a frame from one second into the video.
+          final bytes = await vt.VideoThumbnail.thumbnailData(video: f.path!, imageFormat: vt.ImageFormat.JPEG, maxWidth: 720, quality: 80, timeMs: 1000);
+          if (bytes != null && bytes.isNotEmpty) {
+            thumbKey = '${widget.channelId}/${const Uuid().v4()}.jpg';
+            await media.uploadBinary(thumbKey, bytes, fileOptions: const FileOptions(contentType: 'image/jpeg'));
+            uploaded.add(thumbKey);
+          }
+        }
+      } catch (_) {
+        thumbKey = null;
+      }
+
+      if (mounted) setState(() => _stage = 'Publishing…');
       final post = await sb.from('posts').insert({
         'channel_id': widget.channelId,
         'title': _title.text.trim(),
@@ -179,7 +236,10 @@ class _NewPostScreenState extends State<NewPostScreen> {
         'status': 'published',
       }).select('id').single();
       try {
-        await sb.from('post_items').insert({'post_id': post['id'], 'media_key': key, 'mime': _mimeOf(ext), 'is_premium': _premium, 'size_bytes': f.size});
+        await sb.from('post_items').insert({
+          'post_id': post['id'], 'media_key': key, 'mime': _mimeOf(ext), 'is_premium': _premium, 'size_bytes': f.size,
+          'trailer_key': trailerKey, 'thumbnail_key': thumbKey,
+        });
       } catch (_) {
         await sb.from('posts').delete().eq('id', post['id'] as String);
         rethrow;
@@ -187,45 +247,104 @@ class _NewPostScreenState extends State<NewPostScreen> {
       if (mounted) Navigator.pop(context, true);
       return;
     } on StorageException catch (e) {
-      _err = e.statusCode == '413' || e.message.toLowerCase().contains('size') ? 'This video is too large to upload.' : 'Upload failed. Please try again.';
+      _err = e.statusCode == '413' || e.message.toLowerCase().contains('size') ? 'This file is too large to upload.' : 'Upload failed. Please try again.';
     } on PostgrestException catch (e) {
       _err = e.message;
     } catch (_) {
       _err = 'Could not publish. Check your connection and try again.';
     }
-    if (uploaded) {
-      try { await sb.storage.from('media').remove([key]); } catch (_) {}
+    if (uploaded.isNotEmpty) {
+      try { await media.remove(uploaded); } catch (_) {}
     }
-    if (mounted) setState(() => _busy = false);
+    if (mounted) setState(() { _busy = false; _stage = null; });
   }
+
+  Widget _label(String t) => Padding(
+        padding: const EdgeInsets.fromLTRB(2, 18, 2, 8),
+        child: Text(t.toUpperCase(), style: const TextStyle(color: Tokens.muted, fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: .8)),
+      );
 
   @override
   Widget build(BuildContext context) {
-    final f = _file;
+    final f = _file, t = _trailer, th = _thumb;
     return Scaffold(
       appBar: AppBar(title: const Text('New post')),
-      body: ListView(padding: const EdgeInsets.all(16), children: [
-        TextField(key: const Key('post_title'), controller: _title, maxLength: 120, decoration: const InputDecoration(labelText: 'Title')),
+      body: ListView(padding: const EdgeInsets.fromLTRB(16, 4, 16, 24), children: [
+        _label('Details'),
+        TextField(key: const Key('post_title'), controller: _title, maxLength: 120, textCapitalization: TextCapitalization.sentences, decoration: const InputDecoration(labelText: 'Title')),
         const SizedBox(height: 4),
-        TextField(controller: _desc, maxLines: 3, decoration: const InputDecoration(labelText: 'Description (optional)')),
-        const SizedBox(height: 12),
-        OutlinedButton.icon(
-          onPressed: _busy ? null : _pick,
-          icon: const Icon(Icons.video_library_outlined),
-          label: Text(f == null ? 'Choose video' : '${f.name} · ${(f.size / (1 << 20)).toStringAsFixed(1)} MB', maxLines: 1, overflow: TextOverflow.ellipsis),
+        TextField(controller: _desc, minLines: 3, maxLines: 5, textCapitalization: TextCapitalization.sentences, decoration: const InputDecoration(labelText: 'Description (optional)', alignLabelWithHint: true)),
+        _label('Video'),
+        PickTile(
+          key: const Key('pick_video'),
+          icon: Icons.video_library_outlined,
+          title: 'Main video',
+          subtitle: f == null ? 'Choose the video to publish' : _size(f),
+          chosen: f != null,
+          onTap: _busy ? null : _pick,
+          onClear: _busy ? null : () => setState(() => _file = null),
         ),
-        const SizedBox(height: 4),
-        SwitchListTile(
-          contentPadding: EdgeInsets.zero,
-          value: _premium,
-          onChanged: _busy ? null : (v) => setState(() => _premium = v),
-          title: const Text('Premium video'),
-          subtitle: const Text('Only members with a plan can watch', style: TextStyle(color: Tokens.muted, fontSize: 12)),
+        const SizedBox(height: 8),
+        PickTile(
+          key: const Key('pick_trailer'),
+          icon: Icons.movie_filter_outlined,
+          title: 'Trailer / preview',
+          badge: 'OPTIONAL',
+          subtitle: t == null ? 'A short clip anyone can watch before they join' : _size(t),
+          chosen: t != null,
+          onTap: _busy ? null : _pickTrailer,
+          onClear: _busy ? null : () => setState(() => _trailer = null),
         ),
-        if (_err != null) Padding(padding: const EdgeInsets.only(top: 4), child: Text(_err!, style: const TextStyle(color: Tokens.danger, fontSize: 13))),
-        if (_busy) const Padding(padding: EdgeInsets.only(top: 12), child: LinearProgressIndicator()),
-        const SizedBox(height: 16),
-        GradientButton(label: _busy ? 'Uploading…' : 'Publish', onPressed: _busy ? null : _publish),
+        const SizedBox(height: 8),
+        PickTile(
+          key: const Key('pick_thumbnail'),
+          icon: Icons.image_outlined,
+          title: 'Thumbnail',
+          badge: 'OPTIONAL',
+          subtitle: th == null ? 'Leave empty and we pick a frame from the video' : th.name,
+          chosen: th != null,
+          onTap: _busy ? null : _pickThumb,
+          onClear: _busy ? null : () => setState(() => _thumb = null),
+        ),
+        if (th != null && th.path != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(14),
+              child: AspectRatio(aspectRatio: 16 / 9, child: Image.file(File(th.path!), fit: BoxFit.cover, errorBuilder: (_, __, ___) => const ColoredBox(color: Tokens.surface))),
+            ),
+          ),
+        _label('Access'),
+        Container(
+          decoration: BoxDecoration(color: Tokens.surface, borderRadius: BorderRadius.circular(14), border: Border.all(color: Tokens.border)),
+          child: SwitchListTile(
+            contentPadding: const EdgeInsets.fromLTRB(14, 2, 8, 2),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            secondary: const Icon(Icons.workspace_premium, color: Tokens.gold),
+            value: _premium,
+            onChanged: _busy ? null : (v) => setState(() => _premium = v),
+            title: const Text('Premium video', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+            subtitle: Text(_premium ? 'Only members with a plan can watch. Others see the trailer.' : 'Everyone can watch this video.', style: const TextStyle(color: Tokens.muted, fontSize: 12)),
+          ),
+        ),
+        if (_err != null)
+          Container(
+            margin: const EdgeInsets.only(top: 12),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(color: Tokens.danger.withValues(alpha: .1), borderRadius: BorderRadius.circular(12)),
+            child: Text(_err!, style: const TextStyle(color: Tokens.danger, fontSize: 13)),
+          ),
+        if (_busy)
+          Padding(
+            padding: const EdgeInsets.only(top: 14),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              ClipRRect(borderRadius: BorderRadius.circular(4), child: const LinearProgressIndicator()),
+              const SizedBox(height: 6),
+              Text('${_stage ?? 'Working…'} Keep the app open.', style: const TextStyle(color: Tokens.muted, fontSize: 12)),
+            ]),
+          ),
+        const SizedBox(height: 18),
+        GradientButton(label: _busy ? 'Publishing…' : 'Publish', onPressed: _busy ? null : _publish),
         const SizedBox(height: 10),
         const Text('Posts must follow the Community Guidelines. Content that breaks them is removed.', textAlign: TextAlign.center, style: TextStyle(color: Tokens.muted, fontSize: 12)),
       ]),

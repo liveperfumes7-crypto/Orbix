@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../services/app_scope.dart';
 import '../services/app_state.dart';
 import '../theme.dart';
+import '../widgets/ui.dart';
 import 'post_page.dart';
 import 'premium_screen.dart';
 
@@ -77,7 +78,7 @@ class _PostListState extends State<PostList> {
     return RefreshIndicator(
       onRefresh: () => _load(reset: true),
       child: _rows.isEmpty
-          ? ListView(children: const [SizedBox(height: 80), Center(child: Text('Nothing here yet.', style: TextStyle(color: Tokens.muted)))])
+          ? ListView(children: [const SizedBox(height: 40), EmptyState(icon: Icons.video_library_outlined, title: widget.query.isNotEmpty ? 'No results' : 'No posts yet', message: widget.query.isNotEmpty ? 'Try a different word.' : 'New videos will show up here.')])
           : ListView.builder(
               padding: const EdgeInsets.only(bottom: 12),
               itemCount: _rows.length + (_more ? 1 : 0),
@@ -86,7 +87,8 @@ class _PostListState extends State<PostList> {
                 final r = _rows[i];
                 final ch = (r['channels'] as Map?)?['name'] ?? '';
                 return ListTile(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+                  leading: InitialAvatar(name: ch.toString(), size: 40),
                   title: Text(r['title'] ?? '', maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
                   subtitle: Text(ch.toString(), style: const TextStyle(color: Tokens.muted, fontSize: 12)),
                   trailing: ((r['post_items'] as List?) ?? []).any((e) => e['is_premium'] == true)

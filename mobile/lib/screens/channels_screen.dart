@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/app_scope.dart';
 import '../services/app_state.dart';
 import '../theme.dart';
+import '../widgets/ui.dart';
 import 'channel_page.dart';
 import 'login_sheet.dart';
 
@@ -60,33 +61,15 @@ class _ChannelsScreenState extends State<ChannelsScreen> {
 
   Future<void> _create() async {
     if (!await requireAccount(context) || !mounted) return;
-    final name = TextEditingController();
-    final desc = TextEditingController();
-    final ok = await showDialog<bool>(
+    final ok = await showModalBottomSheet<bool>(
       context: context,
-      builder: (c) => AlertDialog(
-        title: const Text('Create channel'),
-        content: Column(mainAxisSize: MainAxisSize.min, children: [
-          TextField(controller: name, decoration: const InputDecoration(labelText: 'Name')),
-          const SizedBox(height: 8),
-          TextField(controller: desc, decoration: const InputDecoration(labelText: 'Description'), maxLines: 3),
-        ]),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.pop(c, true), child: const Text('Submit')),
-        ],
-      ),
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (_) => const _CreateChannelSheet(),
     );
-    if (ok != true || name.text.trim().isEmpty) return;
-    try {
-      await sb.from('channels').insert({'name': name.text.trim(), 'description': desc.text.trim()});
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Channel sent for approval. It will appear once approved.')));
-      await _load();
-    } on PostgrestException catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
-    } catch (_) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not create the channel. Please try again.')));
-    }
+    if (ok != true || !mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Channel sent for review. It appears for everyone once approved.')));
+    await _load();
   }
 
   @override
@@ -101,7 +84,16 @@ class _ChannelsScreenState extends State<ChannelsScreen> {
           : RefreshIndicator(
               onRefresh: _load,
               child: _rows.isEmpty
-                  ? ListView(children: [const SizedBox(height: 80), Center(child: Text(widget.standalone ? 'You have not created or joined a channel yet.' : 'No channels yet.', style: const TextStyle(color: Tokens.muted)))])
+                  ? ListView(children: [
+                      const SizedBox(height: 56),
+                      EmptyState(
+                        icon: Icons.live_tv_rounded,
+                        title: widget.standalone ? 'No channels of your own yet' : 'No channels yet',
+                        message: widget.standalone ? 'Channels you create or join show up here.' : 'Start the first one. New channels are reviewed before everyone can see them.',
+                        actionLabel: 'Create a channel',
+                        onAction: _create,
+                      ),
+                    ])
                   : ListView(padding: const EdgeInsets.fromLTRB(16, 12, 16, 88), children: [
                       if (!widget.standalone) const Padding(padding: EdgeInsets.only(bottom: 8), child: Text('Channels', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700))),
                       for (final r in _rows)
@@ -110,27 +102,30 @@ class _ChannelsScreenState extends State<ChannelsScreen> {
                           child: Container(
                             decoration: BoxDecoration(color: Tokens.surface, borderRadius: BorderRadius.circular(16), border: Border.all(color: Tokens.border)),
                             child: ListTile(
-                              contentPadding: const EdgeInsets.fromLTRB(12, 2, 12, 2),
+                              contentPadding: const EdgeInsets.fromLTRB(12, 6, 12, 6),
                               onTap: () async {
                                 await Navigator.push(context, MaterialPageRoute(builder: (_) => ChannelPage(channelId: r['id'] as String, name: (r['name'] as String?) ?? '')));
                                 _load();
                               },
-                              leading: Container(
-                                width: 40,
-                                height: 40,
-                                decoration: BoxDecoration(color: Tokens.primary.withValues(alpha: .15), borderRadius: BorderRadius.circular(12)),
-                                alignment: Alignment.center,
-                                child: Text(((r['name'] as String?) ?? '?').isEmpty ? '?' : (r['name'] as String)[0].toUpperCase(), style: const TextStyle(color: Tokens.primary, fontWeight: FontWeight.w700)),
-                              ),
+                              leading: InitialAvatar(name: (r['name'] as String?) ?? '', size: 42),
                               title: Text(r['name'] ?? '', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
-                              subtitle: Text(r['review_status'] == 'pending' ? 'Waiting for approval' : r['review_status'] == 'rejected' ? 'Not approved' : '${r['members_count'] ?? 0} members', style: const TextStyle(color: Tokens.muted, fontSize: 12)),
+                              subtitle: Text(
+                                r['review_status'] == 'pending' ? 'Waiting for approval' : r['review_status'] == 'rejected' ? 'Not approved' : '${r['members_count'] ?? 0} members',
+                                style: TextStyle(color: r['review_status'] == 'pending' ? Tokens.warning : r['review_status'] == 'rejected' ? Tokens.danger : Tokens.muted, fontSize: 12),
+                              ),
                               trailing: r['review_status'] != 'approved'
                                   ? null
-                                  : OutlinedButton(
-                                      style: OutlinedButton.styleFrom(visualDensity: VisualDensity.compact, padding: const EdgeInsets.symmetric(horizontal: 14)),
-                                      onPressed: () => _toggle(r['id'] as String),
-                                      child: Text(_joined.contains(r['id']) ? 'Leave' : 'Join'),
-                                    ),
+                                  : _joined.contains(r['id'])
+                                      ? OutlinedButton(
+                                          style: OutlinedButton.styleFrom(visualDensity: VisualDensity.compact, padding: const EdgeInsets.symmetric(horizontal: 14)),
+                                          onPressed: () => _toggle(r['id'] as String),
+                                          child: const Text('Joined'),
+                                        )
+                                      : FilledButton(
+                                          style: FilledButton.styleFrom(visualDensity: VisualDensity.compact, minimumSize: const Size(64, 36), padding: const EdgeInsets.symmetric(horizontal: 16)),
+                                          onPressed: () => _toggle(r['id'] as String),
+                                          child: const Text('Join'),
+                                        ),
                             ),
                           ),
                         ),
@@ -138,4 +133,89 @@ class _ChannelsScreenState extends State<ChannelsScreen> {
             ),
     );
   }
+}
+
+/// Bottom sheet for starting a channel. Returns true once the channel is saved.
+class _CreateChannelSheet extends StatefulWidget {
+  const _CreateChannelSheet();
+  @override
+  State<_CreateChannelSheet> createState() => _CreateChannelSheetState();
+}
+
+class _CreateChannelSheetState extends State<_CreateChannelSheet> {
+  final _name = TextEditingController();
+  final _desc = TextEditingController();
+  bool _busy = false;
+  String? _err;
+
+  @override
+  void dispose() {
+    _name.dispose();
+    _desc.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    final name = _name.text.trim();
+    if (name.length < 3) return setState(() => _err = 'Give your channel a name of at least 3 letters.');
+    setState(() { _busy = true; _err = null; });
+    try {
+      await sb.from('channels').insert({'name': name, 'description': _desc.text.trim()});
+      if (mounted) Navigator.pop(context, true);
+      return;
+    } on PostgrestException catch (e) {
+      _err = e.message;
+    } catch (_) {
+      _err = 'Could not create the channel. Check your connection and try again.';
+    }
+    if (mounted) setState(() => _busy = false);
+  }
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: EdgeInsets.fromLTRB(20, 10, 20, MediaQuery.of(context).viewInsets.bottom + 20),
+        child: SingleChildScrollView(
+          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            const SheetHandle(),
+            const SizedBox(height: 18),
+            const Text('Create a channel', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 4),
+            const Text('A place to share your videos with members.', style: TextStyle(color: Tokens.muted, fontSize: 13)),
+            const SizedBox(height: 18),
+            TextField(
+              key: const Key('channel_name'),
+              controller: _name,
+              maxLength: 40,
+              autofocus: true,
+              textCapitalization: TextCapitalization.words,
+              textInputAction: TextInputAction.next,
+              decoration: const InputDecoration(labelText: 'Channel name', prefixIcon: Icon(Icons.live_tv_rounded, size: 20)),
+            ),
+            const SizedBox(height: 6),
+            TextField(
+              controller: _desc,
+              maxLength: 200,
+              minLines: 3,
+              maxLines: 4,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: const InputDecoration(labelText: 'What is it about? (optional)', alignLabelWithHint: true),
+            ),
+            const SizedBox(height: 6),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(color: Tokens.primary.withValues(alpha: .08), borderRadius: BorderRadius.circular(12)),
+              child: const Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Icon(Icons.verified_user_outlined, size: 18, color: Tokens.primary),
+                SizedBox(width: 10),
+                Expanded(child: Text('We review every new channel. You can post as soon as it is approved.', style: TextStyle(color: Tokens.muted, fontSize: 12, height: 1.4))),
+              ]),
+            ),
+            if (_err != null) Padding(padding: const EdgeInsets.only(top: 10), child: Text(_err!, style: const TextStyle(color: Tokens.danger, fontSize: 13))),
+            const SizedBox(height: 16),
+            GradientButton(label: _busy ? 'Sending…' : 'Send for review', onPressed: _busy ? null : _submit),
+            const SizedBox(height: 4),
+            TextButton(onPressed: _busy ? null : () => Navigator.pop(context, false), child: const Text('Cancel', style: TextStyle(color: Tokens.muted))),
+          ]),
+        ),
+      );
 }

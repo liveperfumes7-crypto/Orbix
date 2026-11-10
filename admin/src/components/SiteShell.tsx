@@ -1,4 +1,5 @@
 import Link from "next/link";
+import MetaPixel from "./MetaPixel";
 
 const email = process.env.NEXT_PUBLIC_SUPPORT_EMAIL || "help.orbix@gmail.com";
 
@@ -11,9 +12,10 @@ export function Logo() {
 }
 
 export default function SiteShell({ children, bare = false }: { children: React.ReactNode; bare?: boolean }) {
-  if (bare) return <div className="min-h-screen">{children}</div>;
+  if (bare) return <div className="min-h-screen"><MetaPixel />{children}</div>;
   return (
     <div className="site min-h-screen flex flex-col">
+      <MetaPixel />
       <header className="sticky top-0 z-10 border-b border-slate-200 bg-white/95 backdrop-blur">
         <div className="mx-auto max-w-6xl px-4 h-14 flex items-center justify-between">
           <Logo />

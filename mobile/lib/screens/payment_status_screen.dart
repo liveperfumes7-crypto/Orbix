@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../services/app_scope.dart';
 import '../services/app_state.dart';
 import '../theme.dart';
+import '../widgets/ui.dart';
 import 'login_sheet.dart';
 
 class PaymentStatusScreen extends StatefulWidget {
@@ -103,7 +104,7 @@ class PaymentHistoryScreen extends StatelessWidget {
           builder: (c, snap) {
             if (!snap.hasData) return const Center(child: CircularProgressIndicator());
             final rows = List<Map<String, dynamic>>.from(snap.data as List);
-            if (rows.isEmpty) return const Center(child: Text('No payments yet.'));
+            if (rows.isEmpty) return const Center(child: EmptyState(icon: Icons.receipt_long_outlined, title: 'No payments yet', message: 'Plans you buy will be listed here.'));
             return ListView(children: [
               for (final r in rows)
                 ListTile(
