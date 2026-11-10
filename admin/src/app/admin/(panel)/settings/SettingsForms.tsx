@@ -71,11 +71,21 @@ export default function SettingsForms({ mode, pay, plans }: { mode: Row; pay: Ro
           <div key={r.id} className="grid grid-cols-2 md:grid-cols-6 gap-2 items-end">
             <label className="text-xs col-span-2 md:col-span-1">Name<input className="input" value={r.name} onChange={(e) => setPlan(i, { name: e.target.value })} /></label>
             <label className="text-xs">Price ₹<input className="input" type="number" min={0} value={r.price_inr} onChange={(e) => setPlan(i, { price_inr: Number(e.target.value) })} /></label>
-            <label className="text-xs">Days<input className="input" type="number" min={1} value={r.duration_days} onChange={(e) => setPlan(i, { duration_days: Number(e.target.value) })} /></label>
+            <label className="text-xs">Duration
+              <div className="flex gap-1">
+                <input className="input" type="number" min={1} value={r.duration_hours > 0 ? r.duration_hours : r.duration_days}
+                  onChange={(e) => { const n = Math.max(1, Number(e.target.value) || 1); setPlan(i, r.duration_hours > 0 ? { duration_hours: n } : { duration_days: n }); }} />
+                <select className="input max-w-[84px]" value={r.duration_hours > 0 ? "h" : "d"}
+                  onChange={(e) => setPlan(i, e.target.value === "h" ? { duration_hours: Math.max(1, r.duration_days) } : { duration_hours: 0 })}>
+                  <option value="d">Days</option>
+                  <option value="h">Hours</option>
+                </select>
+              </div>
+            </label>
             <label className="text-xs flex items-center gap-1"><input type="checkbox" checked={!!r.active} onChange={(e) => setPlan(i, { active: e.target.checked })} />Active</label>
             <label className="text-xs flex items-center gap-1"><input type="checkbox" checked={!!r.free_eligible} onChange={(e) => setPlan(i, { free_eligible: e.target.checked })} />Free-eligible</label>
             <button className="btn-ghost" onClick={async () => {
-              const { error } = await sb.from("plans").update({ name: r.name, price_inr: r.price_inr, duration_days: r.duration_days, active: r.active, free_eligible: r.free_eligible }).eq("id", r.id);
+              const { error } = await sb.from("plans").update({ name: r.name, price_inr: r.price_inr, duration_days: r.duration_days, duration_hours: r.duration_hours ?? 0, active: r.active, free_eligible: r.free_eligible }).eq("id", r.id);
               done(error);
             }}>Save</button>
           </div>

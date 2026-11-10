@@ -30,7 +30,7 @@ const FAQ = [
 
 export default async function Home() {
   const plans = await loadPlans();
-  const picker = plans.map((p) => ({ id: p.id, name: p.name, price: inr(p.price_inr), label: durationLabel(p.duration_days), badge: p.badge }));
+  const picker = plans.map((p) => ({ id: p.id, name: p.name, price: inr(p.price_inr), label: durationLabel(p.duration_days, p.duration_hours), badge: p.badge }));
   return (
     <SiteShell>
       <section className="bg-gradient-to-b from-violet-100 to-white">

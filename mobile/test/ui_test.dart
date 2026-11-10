@@ -41,6 +41,9 @@ void main() {
   group('Plans page', () {
     test('labels', () {
       expect(durationLabel(7), '7 Days');
+      expect(durationLabel(1, 6), '6 Hours');
+      expect(durationLabel(1, 1), '1 Hour');
+      expect(durationLabel(1, 48), '2 Days');
       expect(durationLabel(30), '1 Month');
       expect(durationLabel(180), '6 Months');
       expect(durationLabel(365), '1 Year');

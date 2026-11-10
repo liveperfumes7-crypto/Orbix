@@ -12,7 +12,11 @@ Future<List<Map<String, dynamic>>> defaultPlansLoader() async {
   return [for (final e in (r as List)) Map<String, dynamic>.from(e as Map)];
 }
 
-String durationLabel(int days) {
+String durationLabel(int days, [int hours = 0]) {
+  if (hours > 0) {
+    if (hours % 24 == 0) return durationLabel(hours ~/ 24);
+    return hours == 1 ? '1 Hour' : '$hours Hours';
+  }
   if (days >= 365 && days % 365 == 0) {
     final y = days ~/ 365;
     return y == 1 ? '1 Year' : '$y Years';
@@ -24,8 +28,9 @@ String durationLabel(int days) {
   return days == 1 ? '1 Day' : '$days Days';
 }
 
-String perDay(num price, int days) {
-  final v = price / (days <= 0 ? 1 : days);
+String perDay(num price, int days, [int hours = 0]) {
+  final d = hours > 0 ? hours / 24 : days.toDouble();
+  final v = price / (d <= 0 ? 1 : d);
   final s = v.toStringAsFixed(1);
   return s.endsWith('.0') ? s.substring(0, s.length - 2) : s;
 }
@@ -196,6 +201,7 @@ class _PlanTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final days = (plan['duration_days'] as num).toInt();
+    final hours = ((plan['duration_hours'] ?? 0) as num).toInt();
     final price = plan['price_inr'] as num;
     final badge = plan['badge'] as String?;
     return Padding(
@@ -229,7 +235,7 @@ class _PlanTile extends StatelessWidget {
                         ),
                     ]),
                     const SizedBox(height: 2),
-                    Text('${durationLabel(days)} · ₹${perDay(price, days)} / day', style: TextStyle(color: selected ? Colors.white.withValues(alpha: .85) : Tokens.muted, fontSize: 13)),
+                    Text('${hours > 0 && hours < 24 ? '${durationLabel(days, hours)} · ₹$price' : '${durationLabel(days, hours)} · ₹${perDay(price, days, hours)} / day'}', style: TextStyle(color: selected ? Colors.white.withValues(alpha: .85) : Tokens.muted, fontSize: 13)),
                   ]),
                 ),
                 if (selected)

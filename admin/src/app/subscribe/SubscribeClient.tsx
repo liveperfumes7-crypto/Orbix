@@ -26,7 +26,7 @@ export default function SubscribeClient({ plans, freeIds, paused, inApp }: { pla
                 <span className="font-semibold">{p.name}{p.badge && <span className="ml-2 rounded-full bg-gold/20 px-2 py-0.5 text-xs text-gold">{p.badge}</span>}</span>
                 <span className="text-xl font-bold">{isFree ? <span className="text-success">FREE</span> : inr(p.price_inr)}</span>
               </div>
-              <div className="text-xs text-muted">{durationLabel(p.duration_days)}</div>
+              <div className="text-xs text-muted">{durationLabel(p.duration_days, p.duration_hours)}</div>
               {p.perks && <ul className="mt-2 text-sm text-muted list-disc pl-5">{p.perks.map((x) => <li key={x}>{x}</li>)}</ul>}
               <button className="btn mt-3 w-full" disabled={paused && !isFree} onClick={() => buy(p.id)}>
                 {isFree ? "Activate free" : "Buy now"}
