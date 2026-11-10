@@ -10,7 +10,9 @@ import '../theme.dart';
 Future<bool> requireAccount(BuildContext context) async {
   final app = AppScope.of(context);
   if (!app.status.isGuest) return true;
-  return showLoginSheet(context);
+  // A guest who already bought a plan adds an email to this same account (keeps the plan).
+  final save = app.status.isPremium;
+  return showLoginSheet(context, signup: save, saveMode: save);
 }
 
 /// [signup] opens on "Sign up". [saveMode] = a guest who already has a plan is adding an email to keep it.

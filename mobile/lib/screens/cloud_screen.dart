@@ -36,9 +36,22 @@ class _CloudScreenState extends State<CloudScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) { if (mounted) _load(); });
   }
 
+  bool? _wasGuest;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Reload the file list when the user logs in or out.
+    final g = AppScope.of(context).status.isGuest;
+    if (_wasGuest != null && _wasGuest != g) WidgetsBinding.instance.addPostFrameCallback((_) { if (mounted) _load(); });
+    _wasGuest = g;
+  }
+
   Future<void> _load() async {
     final app = AppScope.of(context);
-    if (!app.status.isGuest) {
+    if (app.status.isGuest) {
+      _files = [];
+    } else {
       try {
         final d = await sb.from('cloud_files').select('id,name,size_bytes,mime,created_at').order('created_at', ascending: false);
         _files = List<Map<String, dynamic>>.from(d);
@@ -77,14 +90,35 @@ class _CloudScreenState extends State<CloudScreen> {
     await _load();
   }
 
+  void _fail(String msg) {
+    if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+  }
+
   Future<void> _open(String id) async {
-    final r = await _fn({'action': 'download', 'id': id});
-    await launchUrl(Uri.parse(r['url'] as String), mode: LaunchMode.externalApplication);
+    try {
+      final r = await _fn({'action': 'download', 'id': id});
+      await launchUrl(Uri.parse(r['url'] as String), mode: LaunchMode.externalApplication);
+    } catch (_) {
+      _fail('Could not open this file. Please try again.');
+    }
   }
 
   Future<void> _delete(String id) async {
     final app = AppScope.of(context);
-    await _fn({'action': 'delete', 'id': id});
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (d) => AlertDialog(
+        title: const Text('Delete file?'),
+        content: const Text('This cannot be undone.'),
+        actions: [TextButton(onPressed: () => Navigator.pop(d, false), child: const Text('Cancel')), TextButton(onPressed: () => Navigator.pop(d, true), child: const Text('Delete'))],
+      ),
+    );
+    if (ok != true) return;
+    try {
+      await _fn({'action': 'delete', 'id': id});
+    } catch (_) {
+      _fail('Could not delete this file. Please try again.');
+    }
     await app.refresh();
     await _load();
   }
@@ -100,7 +134,11 @@ class _CloudScreenState extends State<CloudScreen> {
       ),
     );
     if (ok == true && c.text.trim().isNotEmpty) {
-      await sb.from('cloud_files').update({'name': c.text.trim()}).eq('id', f['id']);
+      try {
+        await sb.from('cloud_files').update({'name': c.text.trim()}).eq('id', f['id']);
+      } catch (_) {
+        _fail('Could not rename this file.');
+      }
       await _load();
     }
   }
@@ -126,11 +164,13 @@ class _CloudScreenState extends State<CloudScreen> {
                 if (_progress != null) const Padding(padding: EdgeInsets.only(top: 8), child: LinearProgressIndicator()),
               ]))),
               if (s.isGuest)
-                _Prompt(text: 'Log in to get 15 GB free cloud storage', button: 'Log in', onTap: () async { await requireAccount(context); await _load(); })
+                _Prompt(text: s.isPremium ? 'Add your email to start using your cloud storage' : 'Log in to get 15 GB free cloud storage', button: s.isPremium ? 'Add email' : 'Log in', onTap: () async { await requireAccount(context); await _load(); })
               else if (quota == 0 && app.showPrices)
                 _Prompt(text: 'Get 2 TB with Premium', button: 'See plans', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PremiumScreen())))
               else if (quota == 0)
                 const _Prompt(text: 'Cloud storage is not available on your account yet.'),
+              if (!s.isGuest && quota > 0 && _files.isEmpty)
+                const _Prompt(text: 'No files yet. Tap Upload to add your first file.'),
               for (final f in _files)
                 ListTile(
                   leading: const Icon(Icons.insert_drive_file_outlined),

@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/app_scope.dart';
 import '../services/app_state.dart';
 import '../theme.dart';
+import 'channel_page.dart';
 import 'login_sheet.dart';
 
 class ChannelsScreen extends StatefulWidget {
@@ -35,17 +36,24 @@ class _ChannelsScreenState extends State<ChannelsScreen> {
         final m = await sb.from('channel_members').select('channel_id').eq('user_id', uid);
         _joined = {for (final r in m) r['channel_id'] as String};
       }
+      // "My channels": only the ones I created or joined.
+      if (widget.standalone) _rows = [for (final r in _rows) if ((uid != null && r['created_by'] == uid) || _joined.contains(r['id'])) r];
     } catch (_) {}
     if (mounted) setState(() => _loading = false);
   }
 
   Future<void> _toggle(String id) async {
-    if (!await requireAccount(context)) return;
-    final uid = sb.auth.currentUser!.id;
-    if (_joined.contains(id)) {
-      await sb.from('channel_members').delete().eq('channel_id', id).eq('user_id', uid);
-    } else {
-      await sb.from('channel_members').insert({'channel_id': id, 'user_id': uid});
+    if (!await requireAccount(context) || !mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final uid = sb.auth.currentUser!.id;
+      if (_joined.contains(id)) {
+        await sb.from('channel_members').delete().eq('channel_id', id).eq('user_id', uid);
+      } else {
+        await sb.from('channel_members').insert({'channel_id': id, 'user_id': uid});
+      }
+    } catch (_) {
+      messenger.showSnackBar(const SnackBar(content: Text('Could not update. Please try again.')));
     }
     await _load();
   }
@@ -72,10 +80,12 @@ class _ChannelsScreenState extends State<ChannelsScreen> {
     if (ok != true || name.text.trim().isEmpty) return;
     try {
       await sb.from('channels').insert({'name': name.text.trim(), 'description': desc.text.trim()});
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Waiting for approval')));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Channel sent for approval. It will appear once approved.')));
       await _load();
     } on PostgrestException catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+    } catch (_) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not create the channel. Please try again.')));
     }
   }
 
@@ -91,7 +101,7 @@ class _ChannelsScreenState extends State<ChannelsScreen> {
           : RefreshIndicator(
               onRefresh: _load,
               child: _rows.isEmpty
-                  ? ListView(children: const [SizedBox(height: 80), Center(child: Text('No channels yet.', style: TextStyle(color: Tokens.muted)))])
+                  ? ListView(children: [const SizedBox(height: 80), Center(child: Text(widget.standalone ? 'You have not created or joined a channel yet.' : 'No channels yet.', style: const TextStyle(color: Tokens.muted)))])
                   : ListView(padding: const EdgeInsets.fromLTRB(16, 12, 16, 88), children: [
                       if (!widget.standalone) const Padding(padding: EdgeInsets.only(bottom: 8), child: Text('Channels', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700))),
                       for (final r in _rows)
@@ -101,6 +111,10 @@ class _ChannelsScreenState extends State<ChannelsScreen> {
                             decoration: BoxDecoration(color: Tokens.surface, borderRadius: BorderRadius.circular(16), border: Border.all(color: Tokens.border)),
                             child: ListTile(
                               contentPadding: const EdgeInsets.fromLTRB(12, 2, 12, 2),
+                              onTap: () async {
+                                await Navigator.push(context, MaterialPageRoute(builder: (_) => ChannelPage(channelId: r['id'] as String, name: (r['name'] as String?) ?? '')));
+                                _load();
+                              },
                               leading: Container(
                                 width: 40,
                                 height: 40,
@@ -109,8 +123,8 @@ class _ChannelsScreenState extends State<ChannelsScreen> {
                                 child: Text(((r['name'] as String?) ?? '?').isEmpty ? '?' : (r['name'] as String)[0].toUpperCase(), style: const TextStyle(color: Tokens.primary, fontWeight: FontWeight.w700)),
                               ),
                               title: Text(r['name'] ?? '', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
-                              subtitle: Text(r['review_status'] == 'pending' ? 'Waiting for approval' : '${r['members_count'] ?? 0} members', style: const TextStyle(color: Tokens.muted, fontSize: 12)),
-                              trailing: r['review_status'] == 'pending'
+                              subtitle: Text(r['review_status'] == 'pending' ? 'Waiting for approval' : r['review_status'] == 'rejected' ? 'Not approved' : '${r['members_count'] ?? 0} members', style: const TextStyle(color: Tokens.muted, fontSize: 12)),
+                              trailing: r['review_status'] != 'approved'
                                   ? null
                                   : OutlinedButton(
                                       style: OutlinedButton.styleFrom(visualDensity: VisualDensity.compact, padding: const EdgeInsets.symmetric(horizontal: 14)),

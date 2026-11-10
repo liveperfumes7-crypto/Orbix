@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../services/app_scope.dart';
 import '../services/app_state.dart';
 import '../theme.dart';
+import 'channel_page.dart';
 import 'post_page.dart';
 
 /// Home: channels row + latest posts grid. Hidden / wrong-audience rows never come back (RLS).
@@ -93,7 +94,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   itemBuilder: (_, i) {
                     final name = (_channels[i]['name'] as String?) ?? '';
                     return GestureDetector(
-                      onTap: widget.onSeeAllChannels,
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ChannelPage(channelId: _channels[i]['id'] as String, name: name))),
                       child: SizedBox(width: 68, child: Column(children: [
                         Container(
                           width: 68,

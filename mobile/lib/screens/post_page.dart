@@ -23,6 +23,7 @@ class _PostPageState extends State<PostPage> {
   List<Map<String, dynamic>> _items = [];
   VideoPlayerController? _vc;
   String? _error;
+  bool _opening = false, _trailer = false;
 
   @override
   void initState() {
@@ -40,9 +41,14 @@ class _PostPageState extends State<PostPage> {
     try {
       final p = await sb.from('posts').select('id,title,description,channel_id').eq('id', widget.postId).maybeSingle();
       final items = await sb.from('post_items').select('id,media_key,trailer_key,mime,is_premium,duration_s').eq('post_id', widget.postId).order('position');
-      setState(() { _post = p; _items = List<Map<String, dynamic>>.from(items); });
+      if (!mounted) return;
+      setState(() {
+        _post = p;
+        _items = List<Map<String, dynamic>>.from(items);
+        if (p == null) _error = 'This post is not available.';
+      });
     } catch (_) {
-      setState(() => _error = 'Could not load this post.');
+      if (mounted) setState(() => _error = 'Could not load this post.');
     }
   }
 
@@ -58,7 +64,7 @@ class _PostPageState extends State<PostPage> {
   Future<void> _play(Map<String, dynamic> it) async {
     final app = AppScope.of(context);
     // Organic visitors must log in before playing anything; ads visitors can watch free content and trailers as guests.
-    if (app.status.isGuest && app.status.source == 'organic') {
+    if (app.status.isGuest && app.status.source == 'organic' && !app.status.isPremium) {
       if (!await requireAccount(context) || !mounted) return;
     }
     final premium = it['is_premium'] == true;
@@ -69,20 +75,38 @@ class _PostPageState extends State<PostPage> {
       _lockedMessage(app);
       return;
     }
+    if (_opening) return;
+    setState(() => _opening = true);
     final url = await _signed(key);
-    if (url == null) { _lockedMessage(app); return; }
-    _vc?.dispose();
+    if (!mounted) return;
+    if (url == null) {
+      setState(() => _opening = false);
+      _lockedMessage(app);
+      return;
+    }
+    final old = _vc;
     final c = VideoPlayerController.networkUrl(Uri.parse(url));
-    await c.initialize();
-    final pos = await _savedPosition(key);
-    if (pos != null) await c.seekTo(pos);
+    try {
+      await c.initialize();
+    } catch (_) {
+      await c.dispose();
+      if (mounted) {
+        setState(() => _opening = false);
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not play this video. Please try again.')));
+      }
+      return;
+    }
+    if (!mounted) {
+      await c.dispose();
+      return;
+    }
     c.play();
-    setState(() => _vc = c);
+    setState(() { _vc = c; _opening = false; _trailer = premium && !allowed; });
+    await old?.dispose();
   }
 
-  Future<Duration?> _savedPosition(String key) async => null; // resume position stored per user in a follow-up
-
   void _lockedMessage(AppState app) {
+    if (!mounted) return;
     final msg = app.showPrices ? 'Premium video — go Premium to watch the full version' : 'For Premium members';
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
@@ -105,16 +129,22 @@ class _PostPageState extends State<PostPage> {
   }
 
   Future<void> _block() async {
-    if (!await requireAccount(context) || _post == null) return;
-    await sb.from('blocked_channels').insert({'user_id': sb.auth.currentUser!.id, 'channel_id': _post!['channel_id']});
-    if (mounted) Navigator.pop(context);
+    if (!await requireAccount(context) || _post == null || !mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await sb.from('blocked_channels').upsert({'user_id': sb.auth.currentUser!.id, 'channel_id': _post!['channel_id']});
+      messenger.showSnackBar(const SnackBar(content: Text('Channel blocked. You will not see its posts.')));
+      if (mounted) Navigator.pop(context);
+    } catch (_) {
+      messenger.showSnackBar(const SnackBar(content: Text('Could not block this channel. Please try again.')));
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final p = _post;
     return Scaffold(
-      appBar: AppBar(title: Text(p?['title'] ?? ''), actions: [
+      appBar: AppBar(title: Text(p?['title'] ?? '', maxLines: 1, overflow: TextOverflow.ellipsis), actions: [
         IconButton(tooltip: 'Share', icon: const Icon(Icons.share), onPressed: () => Share.share('${Config.websiteUrl}/p/${widget.postId}')),
         PopupMenuButton<String>(
           onSelected: (v) => v == 'report' ? _report() : _block(),
@@ -126,13 +156,22 @@ class _PostPageState extends State<PostPage> {
           : p == null
               ? const Center(child: CircularProgressIndicator())
               : ListView(padding: const EdgeInsets.all(16), children: [
-                  if (_vc != null && _vc!.value.isInitialized) AspectRatio(aspectRatio: _vc!.value.aspectRatio, child: VideoPlayer(_vc!)),
-                  Text(p['description'] ?? '', style: const TextStyle(color: Tokens.muted)),
+                  if (_vc != null && _vc!.value.isInitialized) ...[
+                    _Player(controller: _vc!),
+                    if (_trailer)
+                      const Padding(padding: EdgeInsets.only(top: 6), child: Text('Trailer — go Premium to watch the full video', style: TextStyle(color: Tokens.gold, fontSize: 12))),
+                    const SizedBox(height: 12),
+                  ] else if (_opening)
+                    const Padding(padding: EdgeInsets.symmetric(vertical: 40), child: Center(child: CircularProgressIndicator())),
+                  Text((p['title'] as String?) ?? '', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+                  if (((p['description'] as String?) ?? '').isNotEmpty)
+                    Padding(padding: const EdgeInsets.only(top: 4), child: Text(p['description'] as String, style: const TextStyle(color: Tokens.muted, fontSize: 13))),
                   const SizedBox(height: 12),
+                  if (_items.isEmpty) const Padding(padding: EdgeInsets.all(24), child: Center(child: Text('No media in this post yet.', style: TextStyle(color: Tokens.muted)))),
                   for (final it in _items)
-                    Card(child: ListTile(
-                      leading: Icon((it['mime'] as String? ?? '').startsWith('video') ? Icons.play_circle : Icons.image),
-                      title: Text(it['is_premium'] == true ? 'Premium video' : 'Media'),
+                    Card(margin: const EdgeInsets.only(bottom: 8), child: ListTile(
+                      leading: Icon((it['mime'] as String? ?? '').startsWith('video') ? Icons.play_circle_outline : Icons.image_outlined, color: Tokens.primary),
+                      title: Text(it['is_premium'] == true ? 'Premium video' : 'Play video'),
                       trailing: it['is_premium'] == true && !AppScope.of(context).status.canPlayPremium
                           ? const Icon(Icons.lock, color: Tokens.gold, semanticLabel: 'Locked')
                           : null,
@@ -141,4 +180,36 @@ class _PostPageState extends State<PostPage> {
                 ]),
     );
   }
+}
+
+/// Video with tap-to-pause and a scrub bar.
+class _Player extends StatelessWidget {
+  const _Player({required this.controller});
+  final VideoPlayerController controller;
+  @override
+  Widget build(BuildContext context) => ClipRRect(
+        borderRadius: BorderRadius.circular(14),
+        child: ValueListenableBuilder<VideoPlayerValue>(
+          valueListenable: controller,
+          builder: (context, v, _) => Column(mainAxisSize: MainAxisSize.min, children: [
+            GestureDetector(
+              onTap: () => v.isPlaying ? controller.pause() : controller.play(),
+              child: AspectRatio(
+                aspectRatio: v.aspectRatio == 0 ? 16 / 9 : v.aspectRatio,
+                child: Stack(alignment: Alignment.center, children: [
+                  Positioned.fill(child: ColoredBox(color: Colors.black, child: VideoPlayer(controller))),
+                  if (v.isBuffering) const CircularProgressIndicator(),
+                  if (!v.isPlaying && !v.isBuffering)
+                    Container(
+                      decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
+                      padding: const EdgeInsets.all(10),
+                      child: const Icon(Icons.play_arrow_rounded, size: 40, color: Colors.white, semanticLabel: 'Play'),
+                    ),
+                ]),
+              ),
+            ),
+            VideoProgressIndicator(controller, allowScrubbing: true, padding: EdgeInsets.zero, colors: const VideoProgressColors(playedColor: Tokens.primary, bufferedColor: Tokens.border, backgroundColor: Tokens.surface)),
+          ]),
+        ),
+      );
 }
