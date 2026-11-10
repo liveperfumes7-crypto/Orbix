@@ -50,8 +50,8 @@ android {
         }
         create("play") {
             dimension = "dist"
-            applicationId = "com.orbix.play"
-            manifestPlaceholders["authScheme"] = "com.orbix.play"
+            applicationId = "com.orbixcloud.app"
+            manifestPlaceholders["authScheme"] = "com.orbixcloud.app"
         }
     }
 

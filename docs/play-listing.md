@@ -38,6 +38,6 @@ Use your own screenshots, icon (`mobile/store/play_icon_512.png`) and text. Do n
 
 ## Before you upload
 
-1. Package `com.orbix.play` is a different app from the direct APK (`com.orbix.app`). Confirm with the owner before the first upload.
+1. Package `com.orbixcloud.app` (reserved in Play Console) is a different app from the direct APK (`com.orbix.app`).
 2. Sign the AAB with the key from the GitHub secrets (CI does this).
 3. Complete the Play Integrity setup described in play-billing.md if you want the free-cloud verification.

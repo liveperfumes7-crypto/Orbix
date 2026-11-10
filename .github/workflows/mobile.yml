@@ -60,7 +60,7 @@ jobs:
         run: flutter build apk --release --flavor direct --dart-define=AUTH_SCHEME=com.orbix.app --dart-define=APK_REFERRER="utm_source=meta&utm_medium=paid_social&utm_campaign=apk_download"
       - run: cp build/app/outputs/flutter-apk/app-direct-release.apk ../Orbix-ads.apk
       - name: Play AAB
-        run: flutter build appbundle --release --flavor play --dart-define=PLAY_STORE=true --dart-define=AUTH_SCHEME=com.orbix.play
+        run: flutter build appbundle --release --flavor play --dart-define=PLAY_STORE=true --dart-define=AUTH_SCHEME=com.orbixcloud.app
       - run: cp build/app/outputs/bundle/playRelease/app-play-release.aab ../Orbix-play.aab
       - name: Checksums and manifest checks
         working-directory: .
