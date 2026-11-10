@@ -1,85 +1,68 @@
 import Link from "next/link";
-import { supabaseServer } from "@/lib/supabase/server";
+import { requireAdmin } from "@/lib/admin";
 import { inr, rowsOf } from "@/lib/format";
-import FlushMeta from "./FlushMeta";
-import Table from "./Table";
+import { PageHeader, Stat, Table, Th, Td, Empty, SourceBadge } from "@/components/admin/ui";
 
-export const dynamic = "force-dynamic";
+const n = (v: unknown) => new Intl.NumberFormat("en-IN").format(Number(v ?? 0));
 
-const MONEY = new Set(["revenue_today", "revenue_month", "revenue_total"]);
-const ALERT_LINK: Record<string, string> = {
-  channel_requests: "/admin/channels",
-  organic_buyers_waiting: "/admin/users",
-  payments_to_verify: "/admin/payments?today=1",
-  open_requests: "/admin/requests",
-};
-const num = (n: number) => new Intl.NumberFormat("en-IN").format(n);
-
-function Tile({ k, v }: { k: string; v: unknown }) {
-  const n = Number(v ?? 0);
+function Alert({ count, text, href }: { count: number; text: string; href: string }) {
+  if (!count) return null;
   return (
-    <div className="card">
-      <div className="text-xs uppercase tracking-wide text-muted">{k.replace(/_/g, " ")}</div>
-      <div className="mt-1 text-2xl font-semibold">{MONEY.has(k) ? inr(n) : isNaN(n) ? String(v) : num(n)}</div>
-    </div>
+    <Link href={href} className="flex items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-900 hover:bg-amber-100">
+      <span>{n(count)} {text}</span><span aria-hidden>→</span>
+    </Link>
   );
 }
 
 export default async function Dashboard() {
-  const sb = supabaseServer();
-  const [{ data: d, error: e1 }, { data: p }] = await Promise.all([sb.rpc("admin_dashboard"), sb.rpc("admin_payment_stats")]);
-  const dash = (d ?? {}) as Record<string, unknown>;
-  const pay = (p ?? {}) as Record<string, unknown>;
-  const flat = (o: Record<string, unknown>) => Object.entries(o).filter(([, v]) => v === null || typeof v !== "object");
-  const alerts = Object.entries((dash.alerts ?? {}) as Record<string, number>);
-
+  const { sb, role } = await requireAdmin();
+  const owner = role === "owner";
+  const [{ data: d }, camp] = await Promise.all([sb.rpc("admin_dashboard"), owner ? sb.rpc("admin_campaigns") : Promise.resolve({ data: [] })]);
+  const s = (d ?? {}) as Record<string, unknown>;
+  const a = (s.alerts ?? {}) as Record<string, number>;
+  const rows = rowsOf(camp.data);
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <h1 className="text-xl font-semibold">Dashboard</h1>
-        <FlushMeta />
+    <>
+      <PageHeader title="Dashboard" sub="Dates and totals use India time (IST)." />
+      {owner && (
+        <div className="mb-5 space-y-2">
+          <Alert count={a.channel_requests ?? 0} text="new channel requests to review" href="/admin/channels" />
+          <Alert count={a.organic_buyers_waiting ?? 0} text="organic users waiting for approval" href="/admin/approvals" />
+          <Alert count={a.payments_to_verify ?? 0} text="payments to verify against bank today" href="/admin/payments?verify=today" />
+          <Alert count={a.open_requests ?? 0} text="open requests and reports" href="/admin/requests" />
+        </div>
+      )}
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+        {owner && <>
+          <Stat label="Installs from ads" value={n(s.ads_installs)} />
+          <Stat label="Organic installs" value={n(s.organic_installs)} />
+          <Stat label="App users" value={n(s.users)} />
+          <Stat label="Logged-in users" value={n(s.logged_in)} />
+          <Stat label="Premium users" value={n(s.premium_users)} />
+        </>}
+        <Stat label="Channels" value={n(s.channels)} />
+        <Stat label="Posts" value={n(s.posts)} />
+        {owner && <>
+          <Stat label="Revenue today" value={inr(Number(s.revenue_today ?? 0))} />
+          <Stat label="Revenue this month" value={inr(Number(s.revenue_month ?? 0))} />
+          <Stat label="Free plans claimed" value={n(s.free_claims)} />
+        </>}
       </div>
-      {e1 && <p className="text-sm text-danger">{e1.message}</p>}
-
-      {alerts.length > 0 && (
-        <section className="space-y-2">
-          <h2 className="text-sm font-medium text-muted">Needs attention</h2>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            {alerts.map(([k, v]) => {
-              const n = Number(v ?? 0);
-              return (
-                <Link key={k} href={ALERT_LINK[k] ?? "/admin"} className={"card block hover:border-primary transition-colors " + (n > 0 ? "border-warning/60" : "")}>
-                  <div className="text-xs uppercase tracking-wide text-muted">{k.replace(/_/g, " ")}</div>
-                  <div className={"mt-1 text-2xl font-semibold " + (n > 0 ? "text-warning" : "")}>{num(n)}</div>
-                </Link>
-              );
-            })}
-          </div>
-        </section>
+      {owner && (
+        <div className="mt-6">
+          <h2 className="mb-2 text-sm font-semibold text-gray-900">Installs by source and campaign</h2>
+          {rows.length === 0 ? <Empty>No installs recorded yet.</Empty> : (
+            <Table>
+              <thead><tr><Th>Source</Th><Th>Campaign</Th><Th>Installs</Th><Th>Registrations</Th><Th>Buyers</Th></tr></thead>
+              <tbody>
+                {rows.map((r, i) => (
+                  <tr key={i}><Td><SourceBadge value={r.source as string} /></Td><Td>{String(r.campaign)}</Td><Td>{n(r.installs)}</Td><Td>{n(r.registrations)}</Td><Td>{n(r.buyers)}</Td></tr>
+                ))}
+              </tbody>
+            </Table>
+          )}
+        </div>
       )}
-
-      <section className="space-y-2">
-        <h2 className="text-sm font-medium text-muted">Overview</h2>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">{flat(dash).map(([k, v]) => <Tile key={k} k={k} v={v} />)}</div>
-      </section>
-
-      {flat(pay).length > 0 && (
-        <section className="space-y-2">
-          <h2 className="text-sm font-medium text-muted">Payments</h2>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">{flat(pay).map(([k, v]) => <Tile key={k} k={k} v={v} />)}</div>
-        </section>
-      )}
-
-      {([
-        ["Sales per plan", pay.sales_per_plan, "No paid orders yet."],
-        ["Repeat buyers", pay.repeat_buyers, "No repeat buyers yet."],
-        ["Installs by campaign", dash.installs_by_campaign, "No installs recorded yet."],
-      ] as [string, unknown, string][]).map(([title, data, empty]) => (
-        <section key={title} className="space-y-2">
-          <h2 className="text-sm font-medium text-muted">{title}</h2>
-          <Table rows={rowsOf(data)} empty={empty} />
-        </section>
-      ))}
-    </div>
+    </>
   );
 }

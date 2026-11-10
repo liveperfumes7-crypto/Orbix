@@ -1,38 +1,37 @@
-import { redirect } from "next/navigation";
-import { supabaseServer } from "@/lib/supabase/server";
-import SignOut from "./SignOut";
+import type { Metadata } from "next";
+import { Suspense } from "react";
+import { requireAdmin } from "@/lib/admin";
+import { Flash, SignOut } from "@/components/admin/client";
 import Nav from "./Nav";
 
 export const dynamic = "force-dynamic";
+export const metadata: Metadata = { title: "Orbix Admin", robots: { index: false, follow: false } };
 
 export default async function PanelLayout({ children }: { children: React.ReactNode }) {
-  const sb = supabaseServer();
-  const { data: u } = await sb.auth.getUser();
-  if (!u.user) redirect("/admin/login");
-  const { data: isAdmin } = await sb.rpc("is_admin");
-  if (!isAdmin) {
-    return (
-      <main className="min-h-screen grid place-items-center px-4">
-        <div className="card max-w-sm text-center space-y-3">
-          <p className="font-semibold">Not an admin account</p>
-          <p className="text-sm text-muted">{u.user.email} does not have admin access.</p>
+  const { sb, user, role } = await requireAdmin();
+  const { data: counts } = await sb.rpc("admin_nav_counts");
+  return (
+    <div className="min-h-screen bg-gray-50 text-gray-900 md:flex">
+      <aside className="border-b border-gray-200 bg-white p-3 md:fixed md:inset-y-0 md:left-0 md:flex md:w-60 md:flex-col md:border-b-0 md:border-r md:p-4">
+        <div className="mb-3 flex items-center gap-3 md:mb-5">
+          <div className="grid h-9 w-9 place-items-center rounded-lg bg-violet-600 text-sm font-bold text-white">OB</div>
+          <span className="font-semibold">Orbix</span>
+          <div className="ml-auto text-right text-xs text-gray-500 md:hidden">{role}</div>
+        </div>
+        <Nav owner={role === "owner"} counts={(counts ?? {}) as Record<string, number>} />
+        <div className="mt-3 hidden border-t border-gray-200 pt-3 md:mt-auto md:block">
+          <div className="truncate text-xs text-gray-700" title={user.email ?? ""}>{user.email}</div>
+          <div className="text-xs capitalize text-gray-500">{role} admin</div>
           <SignOut />
         </div>
-      </main>
-    );
-  }
-  return (
-    <div className="min-h-screen md:flex">
-      <aside className="md:w-60 md:min-h-screen md:sticky md:top-0 md:h-screen bg-[#0E0E1C] border-b md:border-b-0 md:border-r border-border p-4 md:flex md:flex-col">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="h-9 w-9 rounded-xl bg-brand grid place-items-center font-bold text-sm">OB</div>
-          <span className="font-semibold">Orbix Admin</span>
-        </div>
-        <Nav />
-        <div className="mt-4 md:mt-auto text-xs text-muted truncate" title={u.user.email ?? ""}>{u.user.email}</div>
-        <SignOut />
       </aside>
-      <main className="flex-1 p-4 md:p-8 min-w-0"><div className="mx-auto max-w-6xl">{children}</div></main>
+      <main className="min-w-0 flex-1 p-4 md:ml-60 md:p-8">
+        <div className="mx-auto max-w-6xl">
+          <Suspense fallback={null}><Flash /></Suspense>
+          {children}
+          <div className="mt-8 md:hidden"><SignOut /></div>
+        </div>
+      </main>
     </div>
   );
 }

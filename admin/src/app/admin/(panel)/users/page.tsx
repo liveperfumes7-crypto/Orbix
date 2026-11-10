@@ -1,40 +1,73 @@
-import { supabaseServer } from "@/lib/supabase/server";
-import { rowsOf } from "@/lib/format";
-import Table, { type Action } from "../Table";
+import { requireAdmin } from "@/lib/admin";
+import { ist, rowsOf } from "@/lib/format";
+import { PageHeader, Table, Th, Td, Empty, SourceBadge, StatusBadge, Select, Input, Button, Hidden, Badge, ErrorNote } from "@/components/admin/ui";
+import { SubmitButton } from "@/components/admin/client";
+import { setAccess, grantPremium } from "../actions";
 
-export const dynamic = "force-dynamic";
+type Q = { q?: string; source?: string; account?: string; plan?: string };
 
-const ACTIONS: Action[] = [
-  { label: "Approve full access", rpc: "set_ads_access", args: { p_user: "$row.id", p_status: "approved" }, show: [{ field: "ads_access_status", not: "approved" }, { field: "source", not: "ads" }] },
-  { label: "Reject", rpc: "set_ads_access", danger: true, args: { p_user: "$row.id", p_status: "rejected" }, show: [{ field: "ads_access_status", is: "pending" }] },
-];
-
-export default async function Users({ searchParams }: { searchParams: { q?: string; source?: string } }) {
-  const sb = supabaseServer();
-  const { data, error } = await sb.rpc("admin_users", {
-    p_search: searchParams.q ?? null,
-    p_source: searchParams.source ?? null,
-    p_plan: null,
-    p_guest: null,
-    p_access: null,
-    p_limit: 100,
-    p_offset: 0,
-  });
-  const total = (data as { total?: number } | null)?.total;
+export default async function Users({ searchParams }: { searchParams: Q }) {
+  const { sb } = await requireAdmin(true);
+  const [{ data, error }, { data: plans }] = await Promise.all([
+    sb.rpc("admin_users", {
+      p_search: searchParams.q ?? null, p_source: searchParams.source ?? null, p_plan: searchParams.plan ?? null,
+      p_guest: searchParams.account === "guest" ? true : searchParams.account === "registered" ? false : null,
+      p_access: null, p_limit: 500, p_offset: 0,
+    }),
+    sb.from("plans").select("id,name").eq("active", true).order("position"),
+  ]);
+  const rows = rowsOf(data);
+  const total = (data as { total?: number } | null)?.total ?? rows.length;
+  const back = "/admin/users?" + new URLSearchParams(Object.entries(searchParams).filter(([, v]) => v) as [string, string][]).toString();
   return (
-    <div className="space-y-4">
-      <h1 className="text-xl font-semibold">Users {total != null && <span className="text-muted text-sm">({total})</span>}</h1>
-      <form className="flex gap-2 flex-wrap">
-        <input name="q" defaultValue={searchParams.q} placeholder="Search email or name" className="input max-w-xs" />
-        <select name="source" defaultValue={searchParams.source ?? ""} className="input max-w-[160px]">
-          <option value="">All sources</option>
-          <option value="ads">Ads</option>
-          <option value="organic">Organic</option>
-        </select>
-        <button className="btn">Filter</button>
+    <>
+      <PageHeader title={`Users (${total})`} sub="Latest 500 users, dates in IST." />
+      <ErrorNote error={error} />
+      <form className="mb-4 grid grid-cols-2 gap-2 md:grid-cols-5">
+        <Input name="q" defaultValue={searchParams.q ?? ""} placeholder="Search email or name" aria-label="Search email or name" />
+        <Select name="source" defaultValue={searchParams.source ?? ""} aria-label="Source"><option value="">All sources</option><option value="ads">Ads</option><option value="organic">Organic</option></Select>
+        <Select name="account" defaultValue={searchParams.account ?? ""} aria-label="Account"><option value="">Guests and registered</option><option value="guest">Guests</option><option value="registered">Registered</option></Select>
+        <Select name="plan" defaultValue={searchParams.plan ?? ""} aria-label="Plan"><option value="">Any plan</option><option value="active">Active plan</option><option value="none">No plan</option></Select>
+        <Button variant="secondary">Filter</Button>
       </form>
-      {error && <p className="text-danger text-sm">{error.message}</p>}
-      <Table rows={rowsOf(data)} actions={ACTIONS} empty="No users match this filter." />
-    </div>
+      {rows.length === 0 ? <Empty>No users match this filter.</Empty> : (
+        <Table min={860}>
+          <thead><tr><Th>User</Th><Th>Source</Th><Th>Plan</Th><Th>Access</Th><Th>Joined</Th><Th>Manage</Th></tr></thead>
+          <tbody>
+            {rows.map((r) => {
+              const id = r.id as string;
+              return (
+                <tr key={id}>
+                  <Td>{r.email ? <span className="font-medium text-gray-900">{String(r.email)}</span> : <Badge>Guest</Badge>}{r.display_name ? <div className="text-xs text-gray-500">{String(r.display_name)}</div> : null}</Td>
+                  <Td><SourceBadge value={r.source as string} />{r.campaign ? <div className="mt-1 text-xs text-gray-500">{String(r.campaign)}</div> : null}</Td>
+                  <Td>{r.plan_name ? <><Badge tone="amber">{String(r.plan_name)}</Badge><div className="mt-1 text-xs text-gray-500">until {ist(r.plan_ends_at as string)}</div></> : <span className="text-gray-400">None</span>}</Td>
+                  <Td>{r.source === "ads" ? <Badge tone="green">full (ads)</Badge> : <StatusBadge value={r.ads_access_status as string} />}</Td>
+                  <Td className="whitespace-nowrap text-xs text-gray-500">{ist(r.created_at as string)}</Td>
+                  <Td>
+                    <details>
+                      <summary className="cursor-pointer text-sm font-medium text-violet-700">Manage</summary>
+                      <div className="mt-2 space-y-2">
+                        {r.source !== "ads" && (
+                          <div className="flex flex-wrap gap-1.5">
+                            {r.ads_access_status !== "approved" && <form action={setAccess}><Hidden name="user" value={id} /><Hidden name="status" value="approved" /><Hidden name="back" value={back} /><SubmitButton small variant="success">Approve access</SubmitButton></form>}
+                            {r.ads_access_status === "pending" && <form action={setAccess}><Hidden name="user" value={id} /><Hidden name="status" value="rejected" /><Hidden name="back" value={back} /><SubmitButton small variant="danger" confirm="Reject this request?">Reject</SubmitButton></form>}
+                            {r.ads_access_status === "approved" && <form action={setAccess}><Hidden name="user" value={id} /><Hidden name="status" value="none" /><Hidden name="back" value={back} /><SubmitButton small variant="danger" confirm="Revoke full access for this user?">Revoke access</SubmitButton></form>}
+                          </div>
+                        )}
+                        <form action={grantPremium} className="flex flex-wrap items-center gap-1.5">
+                          <Hidden name="user" value={id} /><Hidden name="back" value={back} />
+                          <Select name="plan" defaultValue="" aria-label="Plan to grant" className="!w-36 !py-1 !text-xs"><option value="" disabled>Choose plan</option>{(plans ?? []).map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</Select>
+                          <SubmitButton small confirm="Give this user the plan for free? It extends any plan they already have.">Grant premium</SubmitButton>
+                        </form>
+                      </div>
+                    </details>
+                  </Td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </Table>
+      )}
+    </>
   );
 }
