@@ -61,6 +61,18 @@ class AppState extends ChangeNotifier {
     } catch (_) {/* retried next launch */}
   }
 
+  /// Makes sure there is an auth session (a guest/anonymous one if needed). Returns false if none could be created.
+  Future<bool> ensureSession() async {
+    if (sb.auth.currentSession != null) return true;
+    try {
+      await sb.auth.signInAnonymously();
+    } catch (_) {
+      return false;
+    }
+    await refresh();
+    return sb.auth.currentSession != null;
+  }
+
   Future<void> refresh() async {
     try {
       final r = await sb.rpc(sb.auth.currentSession == null ? 'guest_status' : 'my_status');

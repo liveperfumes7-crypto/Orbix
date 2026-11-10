@@ -178,8 +178,12 @@ Future<void> startPurchase(BuildContext context, String planId) async {
   final messenger = ScaffoldMessenger.of(context);
   final nav = Navigator.of(context);
 
-  // Guests log in first, then the plan is looked up in the live catalog.
-  if (!await requireAccount(context)) return;
+  // Guests can buy too (they get a guest session and can add an email later to keep the plan).
+  if (!await app.ensureSession()) {
+    messenger.showSnackBar(const SnackBar(content: Text('Could not start a guest session. Please log in to continue.')));
+    if (context.mounted) await requireAccount(context);
+    return;
+  }
   if (!context.mounted) return;
   final plan = await sb.from('plans').select('id,name,price_inr,active').eq('id', planId).eq('active', true).maybeSingle();
   if (plan == null) {

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../services/app_scope.dart';
 import '../services/app_state.dart';
 import '../theme.dart';
+import 'login_sheet.dart';
 
 class PaymentStatusScreen extends StatefulWidget {
   const PaymentStatusScreen({super.key, required this.orderId});
@@ -74,6 +75,12 @@ class _PaymentStatusScreenState extends State<PaymentStatusScreen> {
         const SizedBox(height: 16),
         Text(text, textAlign: TextAlign.center, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
         if (_o?['reference'] != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text('Ref ${_o!['reference']}', style: const TextStyle(color: Tokens.muted))),
+        if (st == 'paid' && (_app?.status.isGuest ?? false)) ...[
+          const SizedBox(height: 16),
+          const Text('Add your email so you never lose this plan if you change phone or reinstall.', textAlign: TextAlign.center, style: TextStyle(color: Tokens.muted, fontSize: 13)),
+          const SizedBox(height: 10),
+          OutlinedButton(onPressed: () => showLoginSheet(context, signup: true, saveMode: true), child: const Text('Add email & password')),
+        ],
         const SizedBox(height: 24),
         if (st == 'failed' || st == 'cancelled' || st == 'rejected')
           GradientButton(label: 'Try again', onPressed: () => Navigator.pop(context))

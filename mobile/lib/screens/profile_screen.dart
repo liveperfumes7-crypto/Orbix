@@ -63,8 +63,12 @@ class AccountView extends StatelessWidget {
             title: s.isGuest ? 'Guest' : (_email() ?? 'Account'),
             subtitle: _planLine(s, d),
             premium: s.isPremium,
-            trailing: s.isGuest ? TextButton(onPressed: () => requireAccount(context), child: const Text('Log in')) : null,
+            trailing: s.isGuest ? TextButton(onPressed: () => showLoginSheet(context, signup: s.isPremium, saveMode: s.isPremium), child: Text(s.isPremium ? 'Add email' : 'Log in')) : null,
           ),
+          if (s.isGuest && s.isPremium) ...[
+            const SizedBox(height: 10),
+            _SaveAccountCard(onTap: () => showLoginSheet(context, signup: true, saveMode: true)),
+          ],
           if (app.showPremiumEntry && s.isPremium) ...[
             const SizedBox(height: 10),
             _UpgradeCard(onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PremiumScreen()))),
@@ -155,6 +159,34 @@ class _AccountCard extends StatelessWidget {
           ),
           if (trailing != null) trailing!,
         ]),
+      );
+}
+
+class _SaveAccountCard extends StatelessWidget {
+  const _SaveAccountCard({required this.onTap});
+  final VoidCallback onTap;
+  @override
+  Widget build(BuildContext context) => Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(18),
+          onTap: onTap,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(color: Tokens.surface, borderRadius: BorderRadius.circular(18), border: Border.all(color: Tokens.warning.withValues(alpha: .6))),
+            child: const Row(children: [
+              Icon(Icons.shield_outlined, color: Tokens.warning),
+              SizedBox(width: 12),
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text('Save your plan', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                  Text('Add an email so you can restore it on any phone', style: TextStyle(fontSize: 12, color: Tokens.muted)),
+                ]),
+              ),
+              Icon(Icons.chevron_right),
+            ]),
+          ),
+        ),
       );
 }
 
