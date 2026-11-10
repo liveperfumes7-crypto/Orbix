@@ -39,6 +39,11 @@ begin
   perform pg_temp.rec('first touch kept (later ads referrer ignored)', r3='organic' and private.source_of(b)='organic');
   perform pg_temp.rec('empty referrer -> organic', r4='organic');
   perform pg_temp.rec('Instagram any-case -> ads', r5='ads');
+  update public.meta_settings set enabled=true, pixel_id='1234567890', capi_token='tok';
+  perform pg_temp.imp(a,true); perform public.record_install('inst-ads-0001','ok','utm_source=meta','s'); reset role;
+  perform pg_temp.rec('AppInstall event only for ads installs (organic/Play send nothing)',
+    (select count(*) from public.meta_events where event_name='AppInstall' and user_id in (b,m))=0);
+  update public.meta_settings set enabled=false, pixel_id='', capi_token='';
   raised := false; begin update private.user_sources set source='ads' where user_id=b; exception when others then raised := true; end;
   perform pg_temp.rec('source UPDATE blocked even for postgres/admin', raised);
   raised := false; begin delete from private.user_sources where user_id=b; exception when others then raised := true; end;
