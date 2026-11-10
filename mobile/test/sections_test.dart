@@ -49,6 +49,7 @@ AppState appWith(Map<String, dynamic> m) => AppState()..status = AppStatus(m);
 const playBuild = bool.fromEnvironment('PLAY_STORE');
 
 void main() {
+  scopeAboveNavigatorTests();
   group('Play build hides purchases', () {
     for (final e in types.entries) {
       testWidgets('${e.key}: Profile is the account card, no plans page', (tester) async {
@@ -145,5 +146,25 @@ void main() {
         expect(find.text('Upload'), findsOneWidget);
       });
     }
+  });
+}
+
+/// Regression: a pushed route (payment status, history...) must find AppScope. It used to sit inside
+/// `home`, so those routes crashed to a blank grey screen after a successful payment.
+void scopeAboveNavigatorTests() {
+  testWidgets('pushed routes can read AppScope when it wraps MaterialApp', (tester) async {
+    final app = appWith(st(plan: true));
+    await tester.pumpWidget(AppScope(
+      state: app,
+      child: MaterialApp(
+        home: Builder(builder: (c) => TextButton(
+          onPressed: () => Navigator.push(c, MaterialPageRoute(builder: (c2) => Text('plan:${AppScope.of(c2).status.isPremium}'))),
+          child: const Text('go'),
+        )),
+      ),
+    ));
+    await tester.tap(find.text('go'));
+    await tester.pumpAndSettle();
+    expect(find.text('plan:true'), findsOneWidget);
   });
 }

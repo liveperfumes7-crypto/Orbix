@@ -20,8 +20,11 @@ class OrbixApp extends StatelessWidget {
   const OrbixApp({super.key, required this.state});
   final AppState state;
 
+  // AppScope must sit ABOVE MaterialApp so every pushed route (payment status, history, upgrade...) can find it.
   @override
-  Widget build(BuildContext context) => MaterialApp(
+  Widget build(BuildContext context) => AppScope(
+      state: state,
+      child: MaterialApp(
         title: Config.appName,
         debugShowCheckedModeBanner: false,
         theme: buildTheme(),
@@ -29,6 +32,6 @@ class OrbixApp extends StatelessWidget {
           data: MediaQuery.of(context).copyWith(textScaler: MediaQuery.textScalerOf(context).clamp(minScaleFactor: .9, maxScaleFactor: 1.1)),
           child: child!,
         ),
-        home: ConsentGate(child: AppScope(state: state, child: const HomeShell())),
-      );
+        home: const ConsentGate(child: HomeShell()),
+      ));
 }
