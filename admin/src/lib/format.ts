@@ -32,7 +32,7 @@ export const rowsOf = (x: unknown): Record<string, unknown>[] => {
 export const cell = (k: string, v: unknown): string => {
   if (v === null || v === undefined || v === "") return "—";
   if (/(_at|^at)$/.test(k) && typeof v === "string") return ist(v);
-  if (/(amount|price)/.test(k) && !isNaN(Number(v))) return inr(v as number);
+  if (/(amount|price|revenue|spent)/.test(k) && !isNaN(Number(v))) return inr(v as number);
   if (/bytes/.test(k) && !isNaN(Number(v))) return gb(Number(v));
   if (typeof v === "object") return JSON.stringify(v);
   return String(v);

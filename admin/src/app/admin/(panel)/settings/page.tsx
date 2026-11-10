@@ -12,5 +12,7 @@ export default async function Settings() {
     sb.from("payment_settings").select("*").eq("id", 1).single(),
     sb.from("plans").select("*").order("position"),
   ]);
+  const err = mode.error ?? pay.error ?? plans.error;
+  if (err || !mode.data || !pay.data) return <p className="text-sm text-danger">Could not load settings{err ? `: ${err.message}` : ""}. Reload the page to try again.</p>;
   return <SettingsForms mode={mode.data} pay={pay.data} plans={plans.data ?? []} />;
 }

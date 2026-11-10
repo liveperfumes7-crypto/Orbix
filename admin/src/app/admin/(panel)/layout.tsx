@@ -1,16 +1,7 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { supabaseServer } from "@/lib/supabase/server";
 import SignOut from "./SignOut";
-
-const NAV = [
-  ["/admin", "Dashboard"],
-  ["/admin/payments", "Payments"],
-  ["/admin/users", "Users"],
-  ["/admin/channels", "Channel requests"],
-  ["/admin/requests", "Requests"],
-  ["/admin/settings", "Settings"],
-];
+import Nav from "./Nav";
 
 export const dynamic = "force-dynamic";
 
@@ -32,22 +23,16 @@ export default async function PanelLayout({ children }: { children: React.ReactN
   }
   return (
     <div className="min-h-screen md:flex">
-      <aside className="md:w-60 md:min-h-screen bg-[#0E0E1C] border-b md:border-b-0 md:border-r border-border p-4">
+      <aside className="md:w-60 md:min-h-screen md:sticky md:top-0 md:h-screen bg-[#0E0E1C] border-b md:border-b-0 md:border-r border-border p-4 md:flex md:flex-col">
         <div className="flex items-center gap-3 mb-4">
-          <div className="h-9 w-9 rounded-xl bg-primary grid place-items-center font-bold">OB</div>
+          <div className="h-9 w-9 rounded-xl bg-brand grid place-items-center font-bold text-sm">OB</div>
           <span className="font-semibold">Orbix Admin</span>
         </div>
-        <nav className="flex md:flex-col gap-1 overflow-x-auto">
-          {NAV.map(([href, label]) => (
-            <Link key={href} href={href} className="whitespace-nowrap rounded-lg px-3 py-2 text-sm text-muted hover:bg-white/5 hover:text-white">
-              {label}
-            </Link>
-          ))}
-        </nav>
-        <div className="mt-4 text-xs text-muted truncate">{u.user.email}</div>
+        <Nav />
+        <div className="mt-4 md:mt-auto text-xs text-muted truncate" title={u.user.email ?? ""}>{u.user.email}</div>
         <SignOut />
       </aside>
-      <main className="flex-1 p-4 md:p-6 min-w-0">{children}</main>
+      <main className="flex-1 p-4 md:p-8 min-w-0"><div className="mx-auto max-w-6xl">{children}</div></main>
     </div>
   );
 }

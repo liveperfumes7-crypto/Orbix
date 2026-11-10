@@ -26,12 +26,12 @@ export default async function Payments({ searchParams }: { searchParams: { statu
       <h1 className="text-xl font-semibold">Payments</h1>
       <div className="flex gap-2 flex-wrap">
         {tabs.map(([s, l]) => (
-          <Link key={s} className="btn-ghost" href={s ? `/admin/payments?status=${s}` : "/admin/payments"}>{l}</Link>
+          <Link key={s} className={"btn-ghost " + ((searchParams.status ?? "") === s && searchParams.today !== "1" ? "border-primary bg-primary/15" : "")} href={s ? `/admin/payments?status=${s}` : "/admin/payments"}>{l}</Link>
         ))}
-        <Link className="btn-ghost" href="/admin/payments?today=1">Verify against bank (today)</Link>
+        <Link className={"btn-ghost " + (searchParams.today === "1" ? "border-primary bg-primary/15" : "")} href="/admin/payments?today=1">Verify against bank (today)</Link>
       </div>
       {error && <p className="text-danger text-sm">{error.message}</p>}
-      <Table rows={rowsOf(data)} actions={ACTIONS} />
+      <Table rows={rowsOf(data)} actions={ACTIONS} empty="No payments in this view." />
     </div>
   );
 }

@@ -5,8 +5,8 @@ import Table, { type Action } from "../Table";
 export const dynamic = "force-dynamic";
 
 const ACTIONS: Action[] = [
-  { label: "Approve full access", rpc: "set_ads_access", args: { p_user: "$row.id", p_status: "approved" } },
-  { label: "Reject", rpc: "set_ads_access", danger: true, args: { p_user: "$row.id", p_status: "rejected" } },
+  { label: "Approve full access", rpc: "set_ads_access", args: { p_user: "$row.id", p_status: "approved" }, show: [{ field: "ads_access_status", not: "approved" }, { field: "source", not: "ads" }] },
+  { label: "Reject", rpc: "set_ads_access", danger: true, args: { p_user: "$row.id", p_status: "rejected" }, show: [{ field: "ads_access_status", is: "pending" }] },
 ];
 
 export default async function Users({ searchParams }: { searchParams: { q?: string; source?: string } }) {
@@ -34,7 +34,7 @@ export default async function Users({ searchParams }: { searchParams: { q?: stri
         <button className="btn">Filter</button>
       </form>
       {error && <p className="text-danger text-sm">{error.message}</p>}
-      <Table rows={rowsOf(data)} actions={ACTIONS} />
+      <Table rows={rowsOf(data)} actions={ACTIONS} empty="No users match this filter." />
     </div>
   );
 }
