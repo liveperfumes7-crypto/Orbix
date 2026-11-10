@@ -48,9 +48,12 @@ begin
   select id into p_gold from public.plans where code='gold'; select id into p_plat from public.plans where code='platinum';
   update public.payment_settings set activation_mode='instant';
 
+  -- guests (anonymous sessions) may buy; they add an email later. Cleaned up so later counts are unchanged.
   perform pg_temp.imp(ug,true); v_raised := false;
   begin perform public.create_order(p_gold); exception when others then v_raised := true; end; reset role;
-  perform pg_temp.rec('guest cannot create order', v_raised);
+  perform pg_temp.rec('guest can create order', not v_raised and exists (select 1 from public.payment_orders where user_id = ug and status = 'pending'));
+  delete from public.meta_events where user_id = ug;
+  delete from public.payment_orders where user_id = ug;
   perform pg_temp.imp(u1,false); c := public.create_order(p_gold); c2 := public.create_order(p_gold); reset role;
   v_o1 := (c->>'order_id')::uuid;
   perform pg_temp.rec('order snapshot: amount, OB reference, UPI id, payee', (c->>'amount_paise')::bigint=25900 and c->>'reference' ~ '^OB[0-9]{6}[A-F0-9]{8}$' and c->>'upi_id'='2728412a@bandhan' and c->>'payee_name'='As Enterprice');
