@@ -62,10 +62,13 @@ jobs:
       - name: Play AAB
         run: flutter build appbundle --release --flavor play --dart-define=PLAY_STORE=true --dart-define=AUTH_SCHEME=com.orbixcloud.app
       - run: cp build/app/outputs/bundle/playRelease/app-play-release.aab ../Orbix-play.aab
+      - name: Play AAB with plans (UPI payments ON, owner's choice)
+        run: flutter build appbundle --release --flavor play --dart-define=AUTH_SCHEME=com.orbixcloud.app
+      - run: cp build/app/outputs/bundle/playRelease/app-play-release.aab ../Orbix-play-with-plans.aab
       - name: Checksums and manifest checks
         working-directory: .
         run: |
-          sha256sum Orbix.apk Orbix-ads.apk Orbix-play.aab | tee checksums.txt
+          sha256sum Orbix.apk Orbix-ads.apk Orbix-play.aab Orbix-play-with-plans.aab | tee checksums.txt
           # merged-manifest assertions
           M=$(find mobile/build -path '*merged_manifests*' -path '*irectRelease*' -name AndroidManifest.xml | head -1)
           echo "manifest: $M"; test -n "$M" || (echo 'merged manifest not found'; exit 1)
@@ -84,6 +87,7 @@ jobs:
             [ "$got" = "$EXPECTED" ] || { echo "Signature mismatch for $f"; exit 1; }
           done
           jarsigner -verify Orbix-play.aab | tail -1
+          jarsigner -verify Orbix-play-with-plans.aab | tail -1
       - uses: actions/upload-artifact@v4
         with:
           name: Orbix-apks
@@ -91,6 +95,7 @@ jobs:
             Orbix.apk
             Orbix-ads.apk
             Orbix-play.aab
+            Orbix-play-with-plans.aab
             checksums.txt
       - name: Publish public release (latest)
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && env.KEYSTORE_B64 != ''
