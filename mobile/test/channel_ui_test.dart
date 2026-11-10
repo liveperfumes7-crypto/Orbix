@@ -29,4 +29,10 @@ void main() {
     await t.pumpWidget(const MaterialApp(home: Scaffold(body: InitialAvatar(name: 'orbix'))));
     expect(find.text('O'), findsOneWidget);
   });
+
+  test('fmtDuration formats minutes and hours', () {
+    expect(fmtDuration(const Duration(seconds: 5)), '0:05');
+    expect(fmtDuration(const Duration(minutes: 3, seconds: 7)), '3:07');
+    expect(fmtDuration(const Duration(hours: 1, minutes: 2, seconds: 3)), '1:02:03');
+  });
 }
