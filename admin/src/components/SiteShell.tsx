@@ -1,7 +1,7 @@
 import Link from "next/link";
 import MetaPixel from "./MetaPixel";
 
-const email = process.env.NEXT_PUBLIC_SUPPORT_EMAIL || "help.orbix@gmail.com";
+const email = process.env.NEXT_PUBLIC_SUPPORT_EMAIL || "help.orbix2026@gmail.com";
 
 export function Logo() {
   return (

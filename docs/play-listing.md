@@ -17,7 +17,7 @@ Use your own screenshots, icon (`mobile/store/play_icon_512.png`) and text. Do n
 
   Orbix is for people aged 18 and over.
 - **Category:** Tools (or Productivity)
-- **Contact email:** help.orbix@gmail.com
+- **Contact email:** help.orbix2026@gmail.com
 - **Website:** https://orbix-gray.vercel.app
 - **Privacy policy URL:** https://orbix-gray.vercel.app/privacy
 - **Account deletion URL (required by Google):** https://orbix-gray.vercel.app/delete-account
