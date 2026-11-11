@@ -1,0 +1,22 @@
+name: publish-play-bundles
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: mobile.yml run whose Orbix-apks artifact should be published
+        required: true
+permissions:
+  contents: write
+  actions: read
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - run: gh run download "${{ inputs.run_id }}" -n Orbix-apks -D out
+      - run: cd out && sha256sum -c checksums.txt
+      - run: |
+          gh release view play-upload >/dev/null 2>&1 || gh release create play-upload --title "Orbix Play bundles" --notes "Signed AABs for upload to Google Play Console." --prerelease --latest=false
+          cd out && gh release upload play-upload Orbix-play-with-plans.aab Orbix-play.aab checksums.txt --clobber
