@@ -1,0 +1,21 @@
+name: bundle-all-assets
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  bundle:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          mkdir -p out/Orbix-all-assets/{play-console-upload,apk,store-images}
+          gh release download play-upload -D out/Orbix-all-assets/play-console-upload -p '*.aab' -p checksums.txt
+          gh release download latest -D out/Orbix-all-assets/apk -p '*.apk'
+          cp mobile/store/play/*.png out/Orbix-all-assets/store-images/
+          (cd out/Orbix-all-assets/play-console-upload && sha256sum -c --ignore-missing checksums.txt)
+          cd out && zip -r -0 Orbix-all-assets.zip Orbix-all-assets && ls -la
+          gh release upload play-upload Orbix-all-assets.zip --clobber
