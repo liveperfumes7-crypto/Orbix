@@ -105,3 +105,11 @@ jobs:
         run: |
           gh release view latest >/dev/null 2>&1 || gh release create latest --title "Orbix (latest)" --notes "Latest signed Orbix builds. Orbix.apk is the website download; Orbix-ads.apk is for ad campaigns." --latest=false
           gh release upload latest Orbix.apk Orbix-ads.apk checksums.txt --clobber
+      - name: Publish Play upload bundles (download link for the Play Console)
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && env.KEYSTORE_B64 != ''
+        working-directory: .
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view play-upload >/dev/null 2>&1 || gh release create play-upload --title "Orbix Play bundles" --notes "Signed AABs for upload to Google Play Console." --prerelease --latest=false
+          gh release upload play-upload Orbix-play-with-plans.aab Orbix-play.aab checksums.txt --clobber
